@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0C1D23">
+<title>Registrar</title>
+<style>
+:root{
+  --bg:#0C1D23;
+  --surface:#123039;
+  --surface-2:#17404B;
+  --line:#1F5361;
+  --ink:#E9EFEC;
+  --dim:#7FA3AC;
+  --accent:#F2A65A;
+  --accent-ink:#2A1704;
+  --income:#7BD3A0;
+  --danger:#E8795C;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  display:flex;justify-content:center;
+  padding-bottom:env(safe-area-inset-bottom);
+  overscroll-behavior:none;
+}
+#app{width:100%;max-width:460px;display:flex;flex-direction:column;height:100dvh}
+
+/* ---------- micro labels ---------- */
+.eyebrow{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--dim);font-weight:600;
+}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;gap:8px;padding:10px 14px 6px}
+.seg{display:flex;background:var(--surface);border-radius:10px;padding:3px;flex:1}
+.seg button{
+  flex:1;border:0;background:transparent;color:var(--dim);
+  font:600 13px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;
+  padding:9px 0;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;
+}
+.seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--ink)}
+.seg button[aria-pressed="true"].inc{color:var(--income)}
+.iconbtn{
+  border:1px solid var(--line);background:transparent;color:var(--dim);
+  width:40px;height:40px;border-radius:10px;font-size:17px;cursor:pointer;
+}
+
+/* ---------- amount ---------- */
+.amount{
+  padding:14px 18px 10px;display:flex;flex-direction:column;
+  align-items:flex-end;gap:2px;
+}
+.currow{display:flex;width:100%;justify-content:space-between;align-items:center}
+.curseg{display:flex;gap:4px}
+.curseg button{
+  border:1px solid var(--line);background:transparent;color:var(--dim);
+  font:600 13px var(--mono);padding:5px 12px;border-radius:999px;cursor:pointer;
+}
+.curseg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.figure{
+  font-family:var(--mono);font-size:clamp(40px,13vw,58px);font-weight:600;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05;
+}
+.figure.zero{color:var(--dim)}
+.figure.inc{color:var(--income)}
+.conv{font:500 12px/1 var(--mono);color:var(--dim);min-height:14px}
+.conv u{text-decoration:none;border-bottom:1px dashed var(--line);cursor:pointer}
+
+/* ---------- chips ---------- */
+.strip{padding:4px 14px 0}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:6px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--ink);
+  font:500 13px var(--sans);padding:9px 14px;border-radius:999px;cursor:pointer;
+  white-space:nowrap;transition:background .12s,border-color .12s;
+}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.chip.inc[aria-pressed="true"]{background:var(--income);border-color:var(--income)}
+.chip.sm{padding:6px 12px;font-size:12px}
+.subrow{display:flex;gap:7px;align-items:center;padding:0 0 4px}
+.subrow .eyebrow{margin-right:2px}
+
+/* ---------- keypad ---------- */
+.pad{
+  margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);
+  gap:6px;padding:8px 12px;
+}
+.key{
+  border:0;background:var(--surface);color:var(--ink);
+  font:500 26px var(--mono);font-variant-numeric:tabular-nums;
+  padding:16px 0;border-radius:12px;cursor:pointer;transition:background .08s;
+}
+.key:active{background:var(--surface-2)}
+.key.util{font-size:19px;color:var(--dim)}
+
+/* ---------- actions ---------- */
+.actions{display:flex;gap:8px;padding:4px 12px 12px}
+.save{
+  flex:1;border:0;background:var(--accent);color:var(--accent-ink);
+  font:700 16px/1 var(--sans);letter-spacing:.02em;padding:17px 0;border-radius:12px;cursor:pointer;
+}
+.save.inc{background:var(--income)}
+.save:disabled{opacity:.4}
+.ghost{
+  border:1px solid var(--line);background:transparent;color:var(--ink);
+  font:600 13px var(--sans);padding:0 16px;border-radius:12px;cursor:pointer;
+}
+.ghost:disabled{opacity:.35}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:86px;transform:translate(-50%,14px);
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  padding:11px 14px;border-radius:11px;display:flex;align-items:center;gap:14px;
+  font:500 13px var(--sans);opacity:0;pointer-events:none;transition:.22s;
+  max-width:420px;width:calc(100% - 28px);
+}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast b{font-family:var(--mono);font-weight:600}
+.toast button{
+  margin-left:auto;border:0;background:transparent;color:var(--accent);
+  font:700 12px var(--sans);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+}
+
+/* ---------- sheet ---------- */
+.sheet{
+  position:fixed;inset:0;background:rgba(4,14,17,.72);display:none;
+  align-items:flex-end;justify-content:center;z-index:10;
+}
+.sheet.on{display:flex}
+.sheetbody{
+  background:var(--surface);width:100%;max-width:460px;border-radius:16px 16px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:80dvh;overflow:auto;
+}
+.sheetbody h2{font:600 15px var(--sans);margin:0 0 12px}
+.row{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--line);
+}
+.row:last-of-type{border-bottom:0}
+.row .m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.row small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
+.del{border:0;background:transparent;color:var(--danger);font-size:15px;cursor:pointer;padding:4px 8px}
+.empty{color:var(--dim);font-size:13px;padding:18px 0;text-align:center;line-height:1.5}
+input[type=number]{
+  background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  font:600 16px var(--mono);padding:10px 12px;border-radius:9px;width:110px;text-align:right;
+}
+.sheet .save{margin-top:14px}
+.note{color:var(--dim);font-size:11.5px;line-height:1.5;margin:10px 0 0}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="seg" role="group" aria-label="Tipo de movimiento">
+      <button id="tGasto" aria-pressed="true">Gasto</button>
+      <button id="tIngreso" class="inc" aria-pressed="false">Ingreso</button>
+    </div>
+    <button class="iconbtn" id="btnHist" aria-label="Ver movimientos">☰</button>
+  </div>
+
+  <div class="amount">
+    <div class="currow">
+      <div class="curseg" role="group" aria-label="Moneda">
+        <button id="cPEN" aria-pressed="true">S/</button>
+        <button id="cUSD" aria-pressed="false">$</button>
+      </div>
+      <span class="eyebrow" id="ctxLabel">Gasto</span>
+    </div>
+    <div class="figure zero" id="figure" aria-live="polite">0.00</div>
+    <div class="conv" id="conv"></div>
+  </div>
+
+  <div class="strip">
+    <span class="eyebrow">Categoría</span>
+    <div class="chips" id="cats"></div>
+    <div class="subrow" id="modeRow" hidden>
+      <span class="eyebrow">Tipo</span>
+      <button class="chip sm" data-mode="rutina" aria-pressed="true">Rutina</button>
+      <button class="chip sm" data-mode="extra" aria-pressed="false">Extra</button>
+    </div>
+    <span class="eyebrow">Cuenta</span>
+    <div class="chips" id="accts"></div>
+  </div>
+
+  <div class="pad">
+    <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+    <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+    <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+    <button class="key util" id="kDouble">00</button>
+    <button class="key">0</button>
+    <button class="key util" id="kDel" aria-label="Borrar">⌫</button>
+  </div>
+
+  <div class="actions">
+    <button class="save" id="btnSave" disabled>Guardar</button>
+    <button class="ghost" id="btnRepeat" disabled>Repetir</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="btnUndo">Deshacer</button></div>
+
+<div class="sheet" id="sheetHist">
+  <div class="sheetbody">
+    <h2>Movimientos del ciclo</h2>
+    <div id="histList"></div>
+    <button class="save" id="btnExport">Exportar CSV</button>
+    <p class="note" id="storeNote"></p>
+  </div>
+</div>
+
+<div class="sheet" id="sheetRate">
+  <div class="sheetbody">
+    <h2>Tipo de cambio del día</h2>
+    <div class="row">
+      <span>1 dólar equivale a<small>Se congela en cada movimiento. Los anteriores no cambian.</small></span>
+      <input type="number" id="rateInput" step="0.001" min="0.001" inputmode="decimal">
+    </div>
+    <button class="save" id="btnRate">Guardar tipo de cambio</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============ almacenamiento ============
+   IndexedDB en producción. Si el entorno lo bloquea (vista previa),
+   cae a memoria y lo dice, en vez de fallar en silencio.        */
+const Store = (() => {
+  let db = null, mem = [], usingMemory = false;
+  const open = () => new Promise((res) => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; res(v); } };
+    setTimeout(() => { usingMemory = usingMemory || !db; finish(false); }, 1500);
+    try {
+      const rq = indexedDB.open("gastos", 1);
+      rq.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains("movimientos")) {
+          const s = d.createObjectStore("movimientos", { keyPath: "id" });
+          s.createIndex("fecha", "fecha_consumo");
+        }
+        if (!d.objectStoreNames.contains("meta")) d.createObjectStore("meta", { keyPath: "k" });
+      };
+      rq.onsuccess = () => { db = rq.result; finish(true); };
+      rq.onerror = () => { usingMemory = true; finish(false); };
+    } catch (e) { usingMemory = true; finish(false); }
+  });
+  const tx = (store, mode) => db.transaction(store, mode).objectStore(store);
+  return {
+    open, isMemory: () => usingMemory,
+    async add(m) {
+      if (usingMemory) { mem.push(m); return; }
+      return new Promise((res, rej) => {
+        const r = tx("movimientos", "readwrite").add(m);
+        r.onsuccess = res; r.onerror = () => rej(r.error);
+      });
+    },
+    async remove(id) {
+      if (usingMemory) { mem = mem.filter(x => x.id !== id); return; }
+      return new Promise((res) => { tx("movimientos", "readwrite").delete(id).onsuccess = res; });
+    },
+    async all() {
+      if (usingMemory) return [...mem];
+      return new Promise((res) => {
+        const r = tx("movimientos", "readonly").getAll();
+        r.onsuccess = () => res(r.result || []); r.onerror = () => res([]);
+      });
+    },
+    async meta(k, v) {
+      if (usingMemory || !db) { if (v === undefined) return null; mem["__" + k] = v; return; }
+      if (v !== undefined) return new Promise(r => { tx("meta", "readwrite").put({ k, v }).onsuccess = r; });
+      return new Promise(r => {
+        const q = tx("meta", "readonly").get(k);
+        q.onsuccess = () => r(q.result ? q.result.v : null); q.onerror = () => r(null);
+      });
+    }
+  };
+})();
+
+/* ============ catálogo ============ */
+const CATS = {
+  egreso: ["Comida","Transporte","Vivienda","Servicios","Educación","Suscripciones","Familia","Cuidado personal","Ocio","Otros"],
+  ingreso: ["Sueldo","Propinas","Otros ingresos"]
+};
+const ACCTS = [
+  { id:"bbva",   nombre:"BBVA",       moneda:"PEN" },
+  { id:"credito",nombre:"Tarjeta",    moneda:"PEN" },
+  { id:"efpen",  nombre:"Efectivo S/",moneda:"PEN" },
+  { id:"efusd",  nombre:"Efectivo $", moneda:"USD" }
+];
+
+/* ============ estado ============ */
+const S = {
+  tipo:"egreso", moneda:"PEN", centimos:0,
+  categoria:null, cuenta:"bbva", modo:"rutina",
+  rate:null, uso:{}, last:null, undoId:null, saving:false
+};
+
+const $ = (s) => document.querySelector(s);
+const fmt = (c) => (c/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+// Fecha LOCAL, no UTC. toISOString() adelantaba un día después de las 7pm en Perú.
+const hoy = () => {
+  const d = new Date();
+  return d.getFullYear() + "-" +
+         String(d.getMonth()+1).padStart(2,"0") + "-" +
+         String(d.getDate()).padStart(2,"0");
+};
+
+/* ============ render ============ */
+function drawFigure(){
+  const f = $("#figure");
+  f.textContent = fmt(S.centimos);
+  f.classList.toggle("zero", S.centimos === 0);
+  f.classList.toggle("inc", S.tipo === "ingreso");
+  const c = $("#conv");
+  if (S.moneda === "USD" && S.rate) {
+    c.innerHTML = "≈ S/ " + fmt(Math.round(S.centimos * S.rate)) +
+                  ' · <u id="editRate">t.c. ' + S.rate.toFixed(3) + "</u>";
+    $("#editRate").onclick = openRate;
+  } else if (S.moneda === "USD") {
+    c.innerHTML = '<u id="editRate">Definir tipo de cambio</u>';
+    $("#editRate").onclick = openRate;
+  } else c.textContent = "";
+  const ok = S.centimos > 0 && S.categoria;
+  $("#btnSave").disabled = !ok || S.saving;
+}
+
+function drawCats(){
+  const box = $("#cats");
+  const list = [...CATS[S.tipo]].sort((a,b) => (S.uso[b]||0) - (S.uso[a]||0));
+  if (S.categoria && !list.includes(S.categoria)) S.categoria = null;
+  box.innerHTML = "";
+  list.forEach(n => {
+    const b = document.createElement("button");
+    b.className = "chip" + (S.tipo === "ingreso" ? " inc" : "");
+    b.textContent = n;
+    b.setAttribute("aria-pressed", S.categoria === n);
+    b.onclick = () => {
+      S.categoria = S.categoria === n ? null : n;
+      $("#modeRow").hidden = S.categoria !== "Comida";
+      drawCats(); drawFigure();
+    };
+    box.appendChild(b);
+  });
+  $("#modeRow").hidden = S.categoria !== "Comida";
+}
+
+function drawAccts(){
+  const box = $("#accts"); box.innerHTML = "";
+  ACCTS.forEach(a => {
+    const b = document.createElement("button");
+    b.className = "chip sm"; b.textContent = a.nombre;
+    b.setAttribute("aria-pressed", S.cuenta === a.id);
+    b.onclick = () => {
+      S.cuenta = a.id;
+      S.moneda = a.moneda;
+      syncCur(); drawAccts(); drawFigure();
+    };
+    box.appendChild(b);
+  });
+}
+
+function syncCur(){
+  $("#cPEN").setAttribute("aria-pressed", S.moneda === "PEN");
+  $("#cUSD").setAttribute("aria-pressed", S.moneda === "USD");
+}
+
+/* ============ teclado ============ */
+function push(d){ if (S.centimos < 99999999) { S.centimos = S.centimos*10 + d; drawFigure(); } }
+document.querySelectorAll(".key").forEach(k => {
+  if (k.id) return;
+  k.onclick = () => push(Number(k.textContent));
+});
+$("#kDouble").onclick = () => { push(0); push(0); };
+$("#kDel").onclick = () => { S.centimos = Math.floor(S.centimos/10); drawFigure(); };
+
+/* ============ tipo / moneda ============ */
+$("#tGasto").onclick   = () => setTipo("egreso");
+$("#tIngreso").onclick = () => setTipo("ingreso");
+function setTipo(t){
+  S.tipo = t;
+  $("#tGasto").setAttribute("aria-pressed", t === "egreso");
+  $("#tIngreso").setAttribute("aria-pressed", t === "ingreso");
+  $("#ctxLabel").textContent = t === "egreso" ? "Gasto" : "Ingreso";
+  $("#btnSave").classList.toggle("inc", t === "ingreso");
+  drawCats(); drawFigure();
+}
+$("#cPEN").onclick = () => { S.moneda = "PEN"; syncCur(); drawFigure(); };
+$("#cUSD").onclick = () => { S.moneda = "USD"; syncCur(); if (!S.rate) openRate(); drawFigure(); };
+
+document.querySelectorAll("[data-mode]").forEach(b => {
+  b.onclick = () => {
+    S.modo = b.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach(x =>
+      x.setAttribute("aria-pressed", x.dataset.mode === S.modo));
+  };
+});
+
+/* ============ tipo de cambio ============ */
+function openRate(){
+  $("#rateInput").value = S.rate || "";
+  $("#sheetRate").classList.add("on");
+  setTimeout(() => $("#rateInput").focus(), 60);
+}
+$("#btnRate").onclick = async () => {
+  const v = parseFloat($("#rateInput").value);
+  if (v > 0) { S.rate = v; await Store.meta("rate", v); }
+  $("#sheetRate").classList.remove("on"); drawFigure();
+};
+
+/* ============ guardar ============ */
+async function guardar(){
+  if (S.saving || !S.centimos || !S.categoria) return;
+  S.saving = true; $("#btnSave").disabled = true;      // anti doble toque
+
+  const rate = S.moneda === "USD" ? (S.rate || 0) : 1;
+  const mov = {
+    id: crypto.randomUUID(),
+    fecha_consumo: hoy(),
+    fecha_cargo: S.cuenta === "credito" ? null : hoy(),
+    cuenta_id: S.cuenta,
+    categoria: S.categoria,
+    modo: S.categoria === "Comida" ? S.modo : null,
+    monto_centimos: S.centimos,
+    moneda: S.moneda,
+    tipo_cambio: rate,
+    monto_pen_centimos: Math.round(S.centimos * rate),
+    tipo: S.tipo,
+    descripcion: "",
+    origen: "manual",
+    creado_en: new Date().toISOString()   // instante exacto, UTC a propósito
+  };
+
+  try { await Store.add(mov); }
+  catch(e){ S.saving = false; toast("No se pudo guardar. Intenta otra vez.", false); return; }
+
+  S.uso[S.categoria] = (S.uso[S.categoria] || 0) + 1;
+  await Store.meta("uso", S.uso);
+  S.last = { centimos: mov.monto_centimos, moneda: mov.moneda, categoria: mov.categoria,
+             cuenta: mov.cuenta_id, tipo: mov.tipo, modo: mov.modo };
+  await Store.meta("last", S.last);
+  S.undoId = mov.id;
+
+  const sig = mov.moneda === "USD" ? "$ " : "S/ ";
+  toast((mov.tipo === "ingreso" ? "Ingreso " : "") + sig + fmt(mov.monto_centimos) +
+        " en " + mov.categoria, true);
+
+  S.centimos = 0; S.saving = false;
+  $("#btnRepeat").disabled = false;
+  drawCats(); drawFigure();
+}
+$("#btnSave").onclick = guardar;
+
+$("#btnRepeat").onclick = () => {
+  if (!S.last) return;
+  S.centimos = S.last.centimos; S.moneda = S.last.moneda;
+  S.categoria = S.last.categoria; S.cuenta = S.last.cuenta;
+  S.modo = S.last.modo || "rutina"; setTipo(S.last.tipo);
+  syncCur(); drawAccts(); drawCats(); drawFigure();
+};
+
+/* ============ toast + deshacer ============ */
+let toastT;
+function toast(msg, undoable){
+  $("#toastMsg").innerHTML = msg;
+  $("#btnUndo").style.display = undoable ? "" : "none";
+  $("#toast").classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => $("#toast").classList.remove("on"), 4200);
+}
+$("#btnUndo").onclick = async () => {
+  if (!S.undoId) return;
+  await Store.remove(S.undoId);
+  if (S.last) S.uso[S.last.categoria] = Math.max(0, (S.uso[S.last.categoria]||1) - 1);
+  S.undoId = null;
+  $("#toast").classList.remove("on");
+  drawCats();
+};
+
+/* ============ historial ============ */
+$("#btnHist").onclick = async () => {
+  const all = (await Store.all()).sort((a,b) => b.creado_en.localeCompare(a.creado_en));
+  const box = $("#histList");
+  if (!all.length) {
+    box.innerHTML = '<p class="empty">Todavía no hay movimientos.<br>Registra el primero y aparecerá acá.</p>';
+  } else {
+    box.innerHTML = "";
+    all.slice(0,40).forEach(m => {
+      const r = document.createElement("div"); r.className = "row";
+      const sig = m.moneda === "USD" ? "$ " : "S/ ";
+      r.innerHTML = '<span>' + m.categoria +
+        (m.modo ? " · " + m.modo : "") +
+        '<small>' + m.fecha_consumo + " · " +
+        (ACCTS.find(a => a.id === m.cuenta_id)||{}).nombre + '</small></span>' +
+        '<span class="m" style="color:' + (m.tipo==="ingreso" ? "var(--income)" : "var(--ink)") + '">' +
+        (m.tipo === "ingreso" ? "+" : "−") + sig + fmt(m.monto_centimos) + '</span>';
+      const d = document.createElement("button");
+      d.className = "del"; d.textContent = "✕"; d.setAttribute("aria-label","Eliminar");
+      d.onclick = async () => { await Store.remove(m.id); $("#btnHist").click(); };
+      r.appendChild(d); box.appendChild(r);
+    });
+  }
+  $("#storeNote").textContent = Store.isMemory()
+    ? "Guardado en memoria: al cerrar esta vista previa los datos se pierden. En la versión instalada usa la base local del teléfono."
+    : "Guardado en tu dispositivo. Exporta de vez en cuando; es tu única copia.";
+  $("#sheetHist").classList.add("on");
+};
+
+$("#btnExport").onclick = async () => {
+  const all = await Store.all();
+  if (!all.length) return;
+  const cols = ["fecha_consumo","tipo","categoria","modo","cuenta_id","moneda",
+                "monto_centimos","tipo_cambio","monto_pen_centimos","creado_en"];
+  const csv = [cols.join(",")].concat(
+    all.map(m => cols.map(c => JSON.stringify(m[c] ?? "")).join(","))
+  ).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type:"text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "movimientos-" + hoy() + ".csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 800);
+};
+
+document.querySelectorAll(".sheet").forEach(s => {
+  s.onclick = (e) => { if (e.target === s) s.classList.remove("on"); };
+});
+
+/* ============ arranque ============ */
+(async () => {
+  await Store.open();
+  S.uso  = (await Store.meta("uso"))  || {};
+  S.rate = (await Store.meta("rate")) || null;
+  S.last = (await Store.meta("last")) || null;
+  if (S.last) $("#btnRepeat").disabled = false;
+  drawCats(); drawAccts(); syncCur(); drawFigure();
+})();
+</script>
+</body>
+</html>
