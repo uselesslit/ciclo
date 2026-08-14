@@ -74,10 +74,10 @@ movimientos(
   categoria_id, modo,              -- modo: rutina | extra (solo Comida)
   monto_centimos,                  -- INTEGER, moneda original
   monto_destino_centimos,          -- solo si la transferencia cambia de moneda
-  moneda, tipo_cambio,
+  moneda, moneda_destino, tipo_cambio,
   monto_pen_centimos,              -- congelado al registrar, NUNCA se recalcula
   tipo,                            -- ingreso | egreso | transferencia
-  nota, origen, creado_en
+  nota, origen, creado_en, editado_en
 )
 
 ciclos(id, fecha_inicio, fecha_fin, saldo_declarado_centimos, parcial, cerrado_en)
@@ -90,7 +90,8 @@ ciclos(id, fecha_inicio, fecha_fin, saldo_declarado_centimos, parcial, cerrado_e
 3. **`monto_pen_centimos` se congela al registrar.** Si se recalcula, el historial cambia solo cada vez que se mueve el tipo de cambio.
 4. **Los saldos se muestran en su moneda.** Solo el consolidado convierte.
 5. **Todas las fechas en hora local.** Ver "Errores" abajo.
-6. **Append-only con reversas.** Corregir agrega, no reescribe.
+6. **Corregir reescribe el movimiento**, con el mismo `id`, conservando `creado_en` y marcando `editado_en`. Decidido el 2026-08-13: reemplaza al append-only con reversas. Durante la fase de descubrimiento vas a corregir seguido y el historial tiene que leerse limpio; tres filas por corrección estorbaban para ver en qué gastas.
+7. **Cuentas y categorías viven en la base, no en el código.** El catálogo de la spec es solo la semilla del primer arranque. Una cuenta o categoría nueva se agrega como dato.
 
 ---
 
@@ -99,10 +100,11 @@ ciclos(id, fecha_inicio, fecha_fin, saldo_declarado_centimos, parcial, cerrado_e
 Esto no es contexto de color: cada dato cambia una decisión de código.
 
 - **Sueldo el día 5.** El ciclo va del 5 al 4, NO es mes calendario. Agrupar por mes partiría cada ciclo en dos.
+- **Arranque en vivo: 5 de septiembre de 2026** (decidido 2026-08-13). Ese día paga la tarjeta, declara con cuánto empieza y se registra desde cero. Hasta entonces todo lo que se guarde es prueba y se borra. Consecuencia: **no habrá ciclo parcial** — el primer ciclo es completo, así que la app tiene que estar lista antes del 5 de septiembre.
 - **Banco BBVA.** Exporta el estado de cuenta solo en PDF, no en Excel/CSV. Por eso no hay importación bancaria.
 - **Tarjeta Visa BFree, línea S/500.** Cierre día 10, vencimiento día 7 del mes siguiente. Paga siempre el total: no hay cuotas, intereses ni pago mínimo que modelar.
 - **La tarjeta factura deuda en soles Y en dólares por separado.** No la trates como cuenta de una sola moneda.
-- **Casi no usa efectivo:** tarjeta y Plin. Eso hace posible cuadrar contra el saldo del banco.
+- **Casi no usa efectivo:** tarjeta y Plin. Eso hace posible cuadrar contra el saldo del banco — pero **son dos saldos, no uno**: el cierre de ciclo cuadra contra Lemon *y* BBVA por separado. Cuadrar solo contra BBVA daría un descuadre del tamaño de todo lo que tiene en Lemon.
 - **Propinas en efectivo,** a veces en soles y a veces en dólares. Por eso existen dos cuentas de efectivo.
 - **Come fuera casi siempre:** ~60 registros de comida al mes contra ~10 de todo lo demás. La pantalla de captura se diseña para este caso.
 - **Turnos rotativos en recepción.** Registra de noche. De ahí el bug de zona horaria.
@@ -113,11 +115,14 @@ Esto no es contexto de color: cada dato cambia una decisión de código.
 
 | Cuenta | Tipo | Moneda |
 |---|---|---|
+| **Lemon** | débito | PEN |
 | BBVA | débito | PEN |
 | Tarjeta | crédito | PEN + USD |
 | Efectivo S/ | efectivo | PEN |
 | Efectivo $ | efectivo | USD |
 | Por cobrar | virtual | PEN |
+
+**Lemon es donde vive la plata** (confirmado 2026-08-13). El sueldo cae en BBVA o en Lemon según el mes, pero termina todo en Lemon. Por eso Lemon va primero en las fichas y es la cuenta por defecto, y `BBVA → Lemon` es un preset de transferencia. Solo en soles: nada de dólares ni cripto ahí.
 
 **Por cobrar** no es real: es la plata prestada. Prestar es transferencia hacia ella, que devuelvan es transferencia de vuelta. Si un préstamo no vuelve, un toque lo convierte en egreso de Familia.
 
@@ -168,7 +173,7 @@ Cada uno costó una corrección. No los repitas.
 ### Jerarquía de la pantalla de inicio
 
 ```
-Disponible real  =  saldo BBVA − deuda facturada de la tarjeta
+Disponible real  =  saldo Lemon + saldo BBVA − deuda facturada de la tarjeta
    ↓
 Ritmo del ciclo (día X de Y, S/ Z por día, quedan N)
    ↓
@@ -195,11 +200,13 @@ Si el usuario pide algo de la segunda lista, no lo construyas todavía: dile que
 
 | # | Entrega | Se valida con |
 |---|---|---|
-| 1 | Captura corregida | Fecha local, transferencias, editar, alcance del pulgar |
-| 2 | Configuración inicial | Saldos, primer ciclo parcial, exportar **e importar** |
-| 3 | Inicio | Disponible real, dos bloques de tarjeta, ritmo |
-| 4 | Fijos y cierre de ciclo | Confirmar de un toque, cuadre contra BBVA |
-| 5 | PWA + GitHub Pages | Instalar y que sobreviva a cerrar el celular |
+| 1 | Captura corregida ✅ | Fecha local, transferencias, editar, alcance del pulgar |
+| 2 | Configuración inicial ✅ | Saldos, exportar **e importar**, borrar todo |
+| 3 | Inicio ✅ | Disponible real, dos bloques de tarjeta, ritmo |
+| 4 | Fijos y cierre de ciclo ✅ | Confirmar de un toque, cuadre contra Lemon y BBVA |
+| 5 | PWA ✅ · Pages pendiente | Instalar y que sobreviva a cerrar el celular |
+
+Todas cerradas el 2026-08-14 salvo publicar en GitHub Pages, que necesita que el dueño cree el repo público. **83 comprobaciones en verde** (`node pruebas/test.mjs`).
 
 La 2 va antes que el dashboard **a propósito**: hasta que la restauración funcione, cada prueba es desechable.
 
@@ -235,4 +242,11 @@ Mitigación sin costo: acceso directo de Android que abra en la pantalla de regi
 
 - `CLAUDE.md` — este archivo
 - `especificacion-v1.md` — la especificación completa, con más detalle
-- `registrar.html` — prototipo de la pantalla de captura, ya con la fecha corregida. Base de la entrega 1, no versión final: le faltan fecha editable, nota, transferencias, editar y el reacomodo para el pulgar
+- `design-system.md` — sistema de diseño **Jade**, en formato DESIGN.md: tokens en YAML y el porqué debajo. Los colores NO salen del escritorio del dueño: se derivaron con su guía de teoría del color (armonía split-complementaria, 60-30-10, roles Material You, contrastes calculados)
+- `index.html` — la app entera, archivo único sin dependencias
+- `manifest.json`, `sw.js`, `icono-*.png` — PWA instalable, funciona sin conexión
+- `fuentes/` — Adwaita Sans y JetBrains Mono recortadas a woff2 (72 KB)
+- `pruebas/test.mjs` — banco de pruebas del JS de `index.html` con un DOM falso. Se corre con `cd ~/gastos && TZ=America/Lima node pruebas/test.mjs`. Sin dependencias. **Correrlo antes de dar por buena cualquier entrega**
+- `registrar.html` — eliminado; era el prototipo. Vive en el historial de git (commit 4423ca8)
+
+Para probar en el celular: `cd ~/gastos && python3 -m http.server 8000` y abrir `http://<ip-de-la-laptop>:8000` en la misma wifi. Sin HTTPS no hay service worker ni Storage API: eso recién se prueba en Pages (entrega 5).

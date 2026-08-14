@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#192621">
+<meta name="description" content="Control de gastos personal. El ciclo va del 5 al 4, como tu sueldo.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icono-192.png">
+<title>Ciclo</title>
+<style>
+@font-face{font-family:Adw;src:url(fuentes/adw-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:Adw;src:url(fuentes/adw-700.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:JB;src:url(fuentes/jb-med.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:JB;src:url(fuentes/jb-xbold.woff2) format("woff2");font-weight:800;font-display:swap}
+
+/* ============================================================
+   Jade — tokens de design-system.md. Oscuro por defecto.
+   ============================================================ */
+:root{
+  --bg:#192621; --s1:#22332D; --s2:#2C4139; --s3:#384F46;
+  --xa4:#046E53; --xa5:#038968; --xa6:#48A686; --xa7:#72C0A3; --xa9:#BCF3DC;
+  --on-prim:#00271A; --sec:#71BCC5; --ter:#DD9A94;
+  --t87:#E2E4E4; --t60:#A7ADAB; --t38:#76817D;
+  --linea:rgba(188,243,220,.13);
+  --sans:Adw,system-ui,-apple-system,sans-serif;
+  --mono:JB,ui-monospace,SFMono-Regular,monospace;
+  --r-sm:14px; --r-md:18px; --r-lg:22px; --r-xl:26px;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-tema="oscuro"]){
+    --bg:#EDF6F2; --s1:#DBEAE4; --s2:#CCDED6; --s3:#BED1C9;
+    --xa4:#046E53; --xa5:#038968; --xa6:#046E53; --xa7:#00553F; --xa9:#00553F;
+    --on-prim:#FFFFFF; --sec:#005E66; --ter:#86403B;
+    --t87:#1C1E1E; --t60:#585E5B; --t38:#7C8581;
+    --linea:rgba(0,60,44,.16);
+  }
+}
+:root[data-tema="claro"]{
+  --bg:#EDF6F2; --s1:#DBEAE4; --s2:#CCDED6; --s3:#BED1C9;
+  --xa4:#046E53; --xa5:#038968; --xa6:#046E53; --xa7:#00553F; --xa9:#00553F;
+  --on-prim:#FFFFFF; --sec:#005E66; --ter:#86403B;
+  --t87:#1C1E1E; --t60:#585E5B; --t38:#7C8581;
+  --linea:rgba(0,60,44,.16);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* [hidden] pierde contra cualquier display de clase: sin esto, el toggle
+   Rutina/Extra se ve siempre. */
+[hidden]{display:none!important}
+html,body{min-height:100%;margin:0}
+body{min-height:100dvh;background-attachment:fixed;
+  background:
+    radial-gradient(115% 60% at 50% -12%, color-mix(in srgb,var(--xa4) 34%, transparent), transparent 62%),
+    var(--bg);
+  color:var(--t87);font-family:var(--sans);
+  display:flex;justify-content:center;overscroll-behavior:none;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#app{width:100%;max-width:460px;display:flex;flex-direction:column;height:100dvh;padding:10px 12px 12px;gap:10px}
+
+.rot{font:700 9.5px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--t60)}
+.panel{
+  background:color-mix(in srgb,var(--s2) 72%,transparent);
+  backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);
+  border:1px solid var(--linea);border-radius:var(--r-xl);
+  box-shadow:0 18px 38px -24px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+/* ---------- barra superior ---------- */
+.top{display:flex;gap:8px;align-items:center}
+.modos{display:flex;flex:1;padding:4px;gap:3px;border-radius:var(--r-lg)}
+.modos button{
+  flex:1;border:0;background:transparent;color:var(--t60);cursor:pointer;
+  font:700 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  padding:10px 2px;border-radius:var(--r-md);transition:background .18s,color .18s;
+}
+.modos button[aria-pressed="true"]{background:var(--xa6);color:var(--on-prim)}
+.icb{
+  width:44px;height:44px;flex:0 0 44px;border-radius:var(--r-md);cursor:pointer;
+  background:color-mix(in srgb,var(--s2) 60%,transparent);border:1px solid var(--linea);
+  color:var(--xa7);font-size:16px;display:grid;place-items:center;
+}
+
+/* ---------- monto ---------- */
+.monto{padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.mfila{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cifra{display:flex;align-items:center;gap:7px;min-width:0}
+.cifra .cur{font:500 15px var(--mono);color:var(--xa7)}
+.cifra .n{
+  font:800 clamp(38px,11.5vw,48px)/1 var(--mono);letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;color:var(--t87);
+  background:transparent;border:0;padding:0;cursor:pointer;
+}
+.cifra .n.cero{color:var(--t38)}
+.hoy{text-align:right;font:400 9.5px var(--sans);color:var(--t60);line-height:1.45}
+.hoy b{display:block;font:500 12.5px var(--mono);color:var(--t87);font-variant-numeric:tabular-nums}
+.conv{font:500 11.5px var(--mono);color:var(--t60);min-height:14px;text-align:right}
+.conv u{text-decoration:none;border-bottom:1px dashed var(--linea);cursor:pointer;color:var(--xa7)}
+.med{height:6px;border-radius:99px;background:color-mix(in srgb,var(--s3) 92%,transparent);overflow:hidden;position:relative}
+.med i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:linear-gradient(90deg,var(--xa5),var(--xa7))}
+.dest{
+  display:none;align-items:center;gap:8px;background:transparent;border:0;cursor:pointer;padding:0;
+  font:800 22px var(--mono);color:var(--t60);font-variant-numeric:tabular-nums;
+}
+.dest.on{display:flex}
+.dest.foco{color:var(--t87)}
+.dest span{font:700 9px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--t60)}
+
+/* ---------- selección ---------- */
+.sel{display:flex;flex-direction:column;gap:7px;padding:0 2px;overflow-y:auto;min-height:0}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;border:1px solid var(--linea);border-radius:var(--r-sm);cursor:pointer;
+  background:color-mix(in srgb,var(--s3) 55%,transparent);color:var(--t87);
+  font:400 13px var(--sans);padding:9px 13px;white-space:nowrap;position:relative;
+  transition:transform .12s,background .12s;
+}
+.chip[aria-pressed="true"]{
+  background:var(--xa6);color:var(--on-prim);font-weight:700;border-color:transparent;
+  box-shadow:0 8px 18px -10px color-mix(in srgb,var(--xa6) 85%,transparent);
+}
+.chip.sm{padding:7px 11px;font-size:12px}
+.chip.pun{border-style:dashed;background:transparent;color:var(--t60)}
+.chip:disabled{opacity:.32;cursor:default}
+.fila2{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#chipFecha{position:relative;overflow:hidden;display:inline-flex;align-items:center}
+#chipFecha input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0}
+#notaWrap{display:none}
+#notaWrap.on{display:block}
+#notaInput{
+  width:100%;background:color-mix(in srgb,var(--s1) 80%,transparent);border:1px solid var(--linea);
+  color:var(--t87);font:400 14px var(--sans);padding:10px 12px;border-radius:var(--r-sm);
+}
+
+/* ---------- teclado ---------- */
+.pad{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:11px 11px 0}
+.tecla{
+  border:1px solid var(--linea);border-radius:var(--r-md);cursor:pointer;
+  background:color-mix(in srgb,var(--s3) 45%,transparent);color:var(--t87);
+  font:500 22px var(--mono);font-variant-numeric:tabular-nums;padding:14px 0;
+  transition:transform .07s,background .07s;
+}
+.tecla:active{transform:scale(.96);background:color-mix(in srgb,var(--xa6) 30%,transparent)}
+.tecla.u{font:400 14px var(--sans);color:var(--t60)}
+.fin{display:flex;gap:8px;padding:11px 11px 11px}
+.guardar{
+  flex:1;border:0;cursor:pointer;border-radius:var(--r-lg);padding:18px 0;
+  background:var(--xa6);color:var(--on-prim);font:700 15px var(--sans);letter-spacing:.02em;
+  box-shadow:0 10px 22px -12px color-mix(in srgb,var(--xa6) 85%,transparent), inset 0 1px 0 rgba(255,255,255,.25);
+  transition:border-radius .22s,transform .12s,background .18s;touch-action:none;
+}
+.guardar:active{border-radius:34px;transform:scale(.97)}
+.guardar:disabled{opacity:.4;box-shadow:none}
+.guardar.listo{border-radius:50%;flex:0 0 62px;height:62px;padding:0;font-size:22px}
+.repetir{
+  border:1px solid var(--linea);background:transparent;color:var(--xa7);cursor:pointer;
+  border-radius:var(--r-md);padding:0 16px;font:400 13px var(--sans);
+}
+.repetir:disabled{opacity:.32}
+
+/* ---------- dial ---------- */
+.dial{position:fixed;inset:0;z-index:30;display:none;touch-action:none}
+.dial.on{display:block}
+.dial .velo{position:absolute;inset:0;background:color-mix(in srgb,var(--bg) 62%,transparent);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.dial .op{
+  position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;
+  display:grid;place-items:center;text-align:center;padding:5px;line-height:1.15;
+  font:400 11px var(--sans);color:var(--t87);
+  background:color-mix(in srgb,var(--s2) 92%,transparent);border:1px solid var(--linea);
+  transition:transform .14s,background .14s;
+}
+.dial .op.sel{
+  transform:scale(1.24);background:var(--xa6);color:var(--on-prim);font-weight:700;border-color:transparent;
+  box-shadow:0 0 0 7px color-mix(in srgb,var(--xa6) 22%,transparent);
+}
+.dial .cen{
+  position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;
+  display:grid;place-items:center;font:400 11px var(--sans);color:var(--t60);
+  background:color-mix(in srgb,var(--s1) 92%,transparent);border:1px solid var(--linea);
+}
+.dial .cen.sel{background:var(--ter);color:#20100E}
+.dial .pista{position:absolute;left:0;right:0;bottom:16px;text-align:center;font:400 11px var(--sans);color:var(--t60)}
+
+/* ---------- aviso ---------- */
+.toast{
+  position:fixed;left:50%;bottom:92px;transform:translate(-50%,14px);z-index:20;
+  background:var(--s2);border:1px solid var(--linea);color:var(--t87);
+  padding:12px 14px;border-radius:var(--r-md);display:flex;align-items:center;gap:14px;
+  font:400 13px var(--sans);opacity:0;pointer-events:none;transition:.2s;
+  max-width:420px;width:calc(100% - 28px);box-shadow:0 18px 40px -20px rgba(0,0,0,.8);
+}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{margin-left:auto;border:0;background:transparent;color:var(--xa7);cursor:pointer;
+  font:700 12px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- hojas ---------- */
+.hoja{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:25}
+.hoja.on{display:flex}
+.hcuerpo{
+  background:var(--s1);width:100%;max-width:460px;border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:84dvh;overflow:auto;
+  border-top:1px solid var(--linea);
+}
+.hcuerpo h2{font:700 15px var(--sans);margin:0 0 12px}
+.linea{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--linea)}
+.linea:last-of-type{border-bottom:0}
+.linea .tap{flex:1;min-width:0;text-align:left;background:transparent;border:0;color:inherit;cursor:pointer;font:400 14px var(--sans);padding:0}
+.linea small{display:block;color:var(--t60);font-size:11px;margin-top:2px}
+.linea .m{font:500 13.5px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.del{border:0;background:transparent;color:var(--ter);cursor:pointer;font-size:15px;padding:4px 6px}
+.vacio{color:var(--t60);font-size:13px;text-align:center;padding:20px 0;line-height:1.5}
+input[type=number]{
+  background:var(--bg);border:1px solid var(--linea);color:var(--t87);
+  font:500 16px var(--mono);padding:10px 12px;border-radius:var(--r-sm);width:118px;text-align:right;
+}
+.hcuerpo .guardar{margin-top:14px;width:100%}
+.nota{color:var(--t60);font-size:11.5px;line-height:1.55;margin:10px 0 0}
+.gr{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ---------- resumen ---------- */
+.tarj-grande{
+  background:color-mix(in srgb,var(--s2) 70%,transparent);border:1px solid var(--linea);
+  border-radius:var(--r-xl);padding:16px;display:flex;flex-direction:column;gap:4px;
+}
+.grande{font:800 34px/1 var(--mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--t87)}
+.grande.neg{color:var(--ter)}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mini-tarj{
+  background:color-mix(in srgb,var(--s1) 70%,transparent);border:1px solid var(--linea);
+  border-radius:var(--r-md);padding:11px 12px;display:flex;flex-direction:column;gap:2px;
+}
+.mini-tarj b{font:800 19px var(--mono);font-variant-numeric:tabular-nums;color:var(--t87)}
+.mini-tarj small{color:var(--t60);font-size:10px;line-height:1.3}
+.barra-cat{display:flex;flex-direction:column;gap:3px;padding:6px 0}
+.barra-cat .cab{display:flex;justify-content:space-between;font-size:12.5px;gap:8px}
+.barra-cat .cab b{font:500 12.5px var(--mono);font-variant-numeric:tabular-nums}
+.barra-cat i{height:5px;border-radius:99px;background:color-mix(in srgb,var(--s3) 92%,transparent);position:relative;overflow:hidden;display:block}
+.barra-cat i em{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--xa6)}
+.barra-cat.ese i em{background:var(--xa5)}
+.aviso{
+  background:color-mix(in srgb,var(--xa6) 18%,transparent);border:1px solid var(--xa6);
+  border-radius:var(--r-md);padding:11px 13px;font-size:13px;display:flex;flex-direction:column;gap:8px;
+}
+:focus-visible{outline:2px solid var(--xa6);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="top">
+    <div class="modos panel" role="group" aria-label="Tipo de movimiento">
+      <button id="tGasto" aria-pressed="true">Gasto</button>
+      <button id="tIngreso" aria-pressed="false">Ingreso</button>
+      <button id="tTransf" aria-pressed="false">Transferir</button>
+    </div>
+    <button class="icb" id="btnHist" aria-label="Ver movimientos">☰</button>
+    <button class="icb" id="btnConf" aria-label="Configuración">⚙</button>
+  </div>
+
+  <div class="panel monto">
+    <div class="mfila">
+      <div class="cifra">
+        <span class="cur" id="curLbl">S/</span>
+        <button class="n cero" id="figure" aria-live="polite">0.00</button>
+      </div>
+      <div class="hoy"><b id="hoyTot">S/ 0.00</b>hoy</div>
+    </div>
+    <button class="dest" id="destino"><span>Recibe</span><b id="destFig">0.00</b></button>
+    <div class="conv" id="conv"></div>
+    <div class="med"><i id="medBarra" style="right:100%"></i></div>
+    <div style="display:flex;justify-content:space-between;font:400 10px var(--sans);color:var(--t60)">
+      <span id="ciclo1">ciclo S/ 0</span><span id="ciclo2">día — de —</span><span id="ciclo3">—</span>
+    </div>
+  </div>
+
+  <div class="sel">
+    <div id="bloqueCat">
+      <span class="rot">Categoría</span>
+      <div class="chips" id="cats" style="margin-top:5px"></div>
+      <div class="fila2" id="modeRow" style="margin-top:6px" hidden>
+        <button class="chip sm" data-mode="rutina" aria-pressed="true">Rutina</button>
+        <button class="chip sm" data-mode="extra" aria-pressed="false">Extra</button>
+      </div>
+      <span class="rot" style="display:block;margin-top:9px">Cuenta</span>
+      <div class="chips" id="accts" style="margin-top:5px"></div>
+    </div>
+
+    <div id="bloqueTransf" hidden>
+      <span class="rot">Movimiento frecuente</span>
+      <div class="chips" id="presets" style="margin-top:5px"></div>
+      <span class="rot" style="display:block;margin-top:9px">Desde</span>
+      <div class="chips" id="origenes" style="margin-top:5px"></div>
+      <span class="rot" style="display:block;margin-top:9px">Hacia</span>
+      <div class="chips" id="destinos" style="margin-top:5px"></div>
+    </div>
+
+    <div class="fila2" style="margin-top:9px">
+      <label class="chip sm pun" id="chipFecha"><span id="txtFecha">Hoy</span>
+        <input type="date" id="inFecha" aria-label="Fecha del movimiento"></label>
+      <button class="chip sm pun" id="chipNota">+ Nota</button>
+    </div>
+    <div id="notaWrap" style="margin-top:6px">
+      <input id="notaInput" type="text" maxlength="120" placeholder="Nota (opcional)">
+    </div>
+  </div>
+
+  <div class="panel" style="padding-bottom:0">
+    <div class="pad">
+      <button class="tecla">7</button><button class="tecla">8</button><button class="tecla">9</button>
+      <button class="tecla">4</button><button class="tecla">5</button><button class="tecla">6</button>
+      <button class="tecla">1</button><button class="tecla">2</button><button class="tecla">3</button>
+      <button class="tecla u" id="kDouble">00</button>
+      <button class="tecla">0</button>
+      <button class="tecla u" id="kDel" aria-label="Borrar">←</button>
+    </div>
+    <div class="fin">
+      <button class="guardar" id="btnSave" disabled>Guardar</button>
+      <button class="repetir" id="btnRepeat" disabled>Repetir</button>
+    </div>
+  </div>
+</div>
+
+<div class="dial" id="dial">
+  <div class="velo"></div>
+  <div class="pista">suelta sobre una categoría · al centro para cancelar</div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="btnUndo">Deshacer</button></div>
+
+<div class="hoja" id="hojaHist">
+  <div class="hcuerpo">
+    <h2>Resumen</h2>
+
+    <div class="tarj-grande">
+      <span class="rot">Disponible real</span>
+      <div class="grande" id="disponible">S/ 0.00</div>
+      <span class="nota" id="dispDetalle" style="margin:0"></span>
+    </div>
+
+    <div id="avisoFijos" hidden style="margin-top:12px"></div>
+
+    <div class="dos" style="margin-top:12px">
+      <div class="mini-tarj">
+        <span class="rot">Tarjeta facturada</span>
+        <b id="tFacturado">S/ 0.00</b>
+        <small id="tVence">—</small>
+      </div>
+      <div class="mini-tarj">
+        <span class="rot">Tarjeta en curso</span>
+        <b id="tCurso">S/ 0.00</b>
+        <small id="tCursoVence">vence el mes siguiente</small>
+      </div>
+    </div>
+
+    <div class="dos" style="margin-top:8px">
+      <div class="mini-tarj">
+        <span class="rot">Te deben</span>
+        <b id="tDeben" style="color:var(--sec)">S/ 0.00</b>
+        <small>préstamos sin devolver</small>
+      </div>
+      <div class="mini-tarj">
+        <span class="rot">Ritmo</span>
+        <b id="tRitmo">—</b>
+        <small id="tRitmoPie">—</small>
+      </div>
+    </div>
+
+    <span class="rot" style="display:block;margin-top:20px">En qué se te va este ciclo</span>
+    <div id="porCategoria" style="margin-top:8px"></div>
+
+    <span class="rot" style="display:block;margin-top:20px">Tendencia</span>
+    <div id="tendencia" style="margin-top:8px"></div>
+
+    <span class="rot" style="display:block;margin-top:20px">Saldos por cuenta</span>
+    <div id="porCuenta" style="margin-top:6px"></div>
+
+    <span class="rot" style="display:block;margin-top:20px">Cerrar el ciclo</span>
+    <p class="nota" style="margin:4px 0 8px" id="cierreIntro"></p>
+    <div id="cierreCampos"></div>
+    <button class="chip sm" id="btnCuadrar" style="margin-top:8px">Cuadrar y cerrar ciclo</button>
+    <p class="nota" id="cierreRes"></p>
+
+    <span class="rot" style="display:block;margin-top:22px">Últimos movimientos</span>
+    <div id="histList" style="margin-top:4px"></div>
+
+    <button class="guardar" id="btnExport">Exportar CSV</button>
+    <div class="gr" style="margin-top:10px">
+      <button class="chip sm pun" id="btnTema">Cambiar a modo claro</button>
+    </div>
+    <p class="nota" id="storeNote"></p>
+  </div>
+</div>
+
+<div class="hoja" id="hojaRate">
+  <div class="hcuerpo">
+    <h2>Tipo de cambio del día</h2>
+    <div class="linea">
+      <span>1 dólar equivale a<small>Se congela en cada movimiento. Los anteriores no cambian.</small></span>
+      <input type="number" id="rateInput" step="0.001" min="0.001" inputmode="decimal">
+    </div>
+    <button class="guardar" id="btnRate">Guardar tipo de cambio</button>
+  </div>
+</div>
+
+<div class="hoja" id="hojaCats">
+  <div class="hcuerpo">
+    <h2>Todas las categorías</h2>
+    <div class="gr" id="todasCats"></div>
+  </div>
+</div>
+
+<div class="hoja" id="hojaConf">
+  <div class="hcuerpo">
+    <h2>Configuración</h2>
+
+    <span class="rot">Con cuánto arrancas</span>
+    <p class="nota" style="margin:4px 0 10px">Lo que tienes en cada cuenta el día que empiezas a registrar. Se guarda una sola vez; después los saldos salen de tus movimientos.</p>
+    <div id="saldos"></div>
+
+    <span class="rot" style="display:block;margin-top:18px">Cuándo empieza el ciclo</span>
+    <div class="linea">
+      <span>Primer día<small>Tu sueldo cae el 5, así que el ciclo va del 5 al 4.</small></span>
+      <input type="date" id="inInicio" style="background:var(--bg);border:1px solid var(--linea);color:var(--t87);
+        font:500 14px var(--mono);padding:9px 10px;border-radius:var(--r-sm)">
+    </div>
+    <button class="guardar" id="btnGuardarConf">Guardar configuración</button>
+
+    <span class="rot" style="display:block;margin-top:22px">Gastos fijos</span>
+    <p class="nota" style="margin:4px 0 8px">Los que se repiten cada ciclo. No se registran solos: aparecen en el Resumen para que los confirmes de un toque.</p>
+    <div id="listaFijos"></div>
+    <div class="linea" style="gap:6px;flex-wrap:wrap">
+      <input id="fNombre" placeholder="Nombre" style="flex:1;min-width:104px;background:var(--bg);border:1px solid var(--linea);color:var(--t87);font:400 13px var(--sans);padding:9px 10px;border-radius:var(--r-sm)">
+      <input id="fMonto" type="number" step="0.01" inputmode="decimal" placeholder="0.00" style="width:88px">
+      <select id="fCat" style="background:var(--bg);border:1px solid var(--linea);color:var(--t87);font:400 13px var(--sans);padding:9px 8px;border-radius:var(--r-sm)"></select>
+      <button class="chip sm" id="btnAddFijo">Añadir</button>
+    </div>
+
+    <span class="rot" style="display:block;margin-top:22px">Respaldo</span>
+    <p class="nota" style="margin:4px 0 10px" id="notaRespaldo"></p>
+    <div class="gr">
+      <button class="chip sm" id="btnExport2">Exportar CSV</button>
+      <button class="chip sm" id="btnImport">Importar CSV</button>
+      <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
+    </div>
+
+    <span class="rot" style="display:block;margin-top:22px">Empezar de cero</span>
+    <p class="nota" style="margin:4px 0 10px">Borra todos los movimientos, para el arranque limpio del 5 de septiembre. Las cuentas y categorías se quedan. Exporta antes si quieres guardar las pruebas.</p>
+    <button class="chip sm" id="btnBorrar" style="border-color:var(--ter);color:var(--ter)">Borrar todos los movimientos</button>
+
+    <p class="nota" id="confNota" style="margin-top:18px"></p>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   Catálogo semilla. Se siembra una vez; después vive en la base.
+   ========================================================================== */
+const SEMILLA_CUENTAS = [
+  { id:"lemon",   nombre:"Lemon",       tipo:"debito",   moneda:"PEN", saldo_inicial_centimos:0, orden:1 },
+  { id:"bbva",    nombre:"BBVA",        tipo:"debito",   moneda:"PEN", saldo_inicial_centimos:0, orden:2 },
+  { id:"tarjeta", nombre:"Tarjeta",     tipo:"credito",  moneda:null,  saldo_inicial_centimos:0,
+    limite_centimos:50000, dia_cierre:10, dia_vencimiento:7, orden:3 },
+  { id:"efpen",   nombre:"Efectivo S/", tipo:"efectivo", moneda:"PEN", saldo_inicial_centimos:0, orden:4 },
+  { id:"efusd",   nombre:"Efectivo $",  tipo:"efectivo", moneda:"USD", saldo_inicial_centimos:0, orden:5 },
+  { id:"cobrar",  nombre:"Por cobrar",  tipo:"virtual",  moneda:"PEN", saldo_inicial_centimos:0, orden:6 }
+];
+
+const SEMILLA_CATEGORIAS = [
+  { id:"comida",     nombre:"Comida",           tipo:"egreso",  es_esencial:true,  orden:1 },
+  { id:"transporte", nombre:"Transporte",       tipo:"egreso",  es_esencial:true,  orden:2 },
+  { id:"vivienda",   nombre:"Vivienda",         tipo:"egreso",  es_esencial:true,  orden:3 },
+  { id:"servicios",  nombre:"Servicios",        tipo:"egreso",  es_esencial:true,  orden:4 },
+  { id:"educacion",  nombre:"Educación",        tipo:"egreso",  es_esencial:true,  orden:5 },
+  { id:"familia",    nombre:"Familia",          tipo:"egreso",  es_esencial:true,  orden:6 },
+  { id:"suscrip",    nombre:"Suscripciones",    tipo:"egreso",  es_esencial:false, orden:7 },
+  { id:"cuidado",    nombre:"Cuidado personal", tipo:"egreso",  es_esencial:false, orden:8 },
+  { id:"ocio",       nombre:"Ocio",             tipo:"egreso",  es_esencial:false, orden:9 },
+  { id:"otros",      nombre:"Otros",            tipo:"egreso",  es_esencial:false, orden:10 },
+  { id:"sueldo",     nombre:"Sueldo",           tipo:"ingreso", es_esencial:false, orden:1 },
+  { id:"propinas",   nombre:"Propinas",         tipo:"ingreso", es_esencial:false, orden:2 },
+  { id:"otros_ing",  nombre:"Otros ingresos",   tipo:"ingreso", es_esencial:false, orden:3 }
+];
+
+/* Los presets con una cuenta inexistente no se muestran: cuando exista, aparecen solos. */
+const PRESETS = [
+  { id:"a_lemon",      nombre:"BBVA → Lemon",     desde:"bbva",   hacia:"lemon"   },
+  { id:"pago_tarjeta", nombre:"Pago de tarjeta",  desde:"lemon",  hacia:"tarjeta" },
+  { id:"ahorro",       nombre:"Ahorro",           desde:"lemon",  hacia:"ahorro"  },
+  { id:"cambio",       nombre:"Cambio de moneda", desde:"efusd",  hacia:"efpen"   },
+  { id:"preste",       nombre:"Presté",           desde:"lemon",  hacia:"cobrar"  },
+  { id:"devolvieron",  nombre:"Me devolvieron",   desde:"cobrar", hacia:"lemon"   }
+];
+
+const DB_VERSION = 3;
+const CSV_VERSION = "gastos-v1";
+const CICLO_DIA = 5;          // el sueldo cae el 5: el ciclo va del 5 al 4
+
+/* ==========================================================================
+   Almacenamiento
+   ========================================================================== */
+const Store = (() => {
+  let db = null, mem = { movimientos:[], cuentas:[], categorias:[], ciclos:[], meta:{} };
+  let usingMemory = false, cerrada = false;
+
+  const open = () => new Promise((res) => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; res(v); } };
+    setTimeout(() => { if (!db) usingMemory = true; finish(false); }, 3000);
+    try {
+      const rq = indexedDB.open("gastos", DB_VERSION);
+      rq.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains("movimientos")) {
+          const s = d.createObjectStore("movimientos", { keyPath:"id" });
+          s.createIndex("fecha", "fecha_consumo");
+        }
+        if (!d.objectStoreNames.contains("meta"))       d.createObjectStore("meta",       { keyPath:"k" });
+        if (!d.objectStoreNames.contains("cuentas"))    d.createObjectStore("cuentas",    { keyPath:"id" });
+        if (!d.objectStoreNames.contains("categorias")) d.createObjectStore("categorias", { keyPath:"id" });
+        if (!d.objectStoreNames.contains("ciclos"))     d.createObjectStore("ciclos",     { keyPath:"id" });
+      };
+      rq.onsuccess = () => {
+        db = rq.result;
+        usingMemory = false;
+        db.onversionchange = () => {
+          db.close(); db = null; cerrada = true;
+          toast("La app se actualizó en otra pestaña. Recarga esta para seguir registrando.", false);
+        };
+        finish(true);
+      };
+      rq.onerror = () => { usingMemory = true; finish(false); };
+      rq.onblocked = () => { usingMemory = true; finish(false); };
+    } catch (e) { usingMemory = true; finish(false); }
+  });
+
+  const tx = (store, mode) => db.transaction(store, mode).objectStore(store);
+
+  return {
+    open,
+    isMemory: () => usingMemory,
+    check(){ if (cerrada) throw new Error("conexión cerrada; recarga la página"); },
+
+    async put(store, obj) {
+      this.check();
+      if (this.isMemory()) {
+        const arr = mem[store]; const i = arr.findIndex(x => x.id === obj.id);
+        if (i >= 0) arr[i] = obj; else arr.push(obj);
+        return;
+      }
+      return new Promise((res, rej) => {
+        const r = tx(store, "readwrite").put(obj);
+        r.onsuccess = res; r.onerror = () => rej(r.error);
+      });
+    },
+    async remove(store, id) {
+      this.check();
+      if (this.isMemory()) { mem[store] = mem[store].filter(x => x.id !== id); return; }
+      return new Promise((res) => { tx(store, "readwrite").delete(id).onsuccess = res; });
+    },
+    async all(store) {
+      if (cerrada) return [];
+      if (this.isMemory()) return [...mem[store]];
+      return new Promise((res) => {
+        const r = tx(store, "readonly").getAll();
+        r.onsuccess = () => res(r.result || []); r.onerror = () => res([]);
+      });
+    },
+    async meta(k, v) {
+      if (cerrada) return v === undefined ? null : undefined;
+      if (this.isMemory()) {
+        if (v === undefined) return mem.meta[k] ?? null;
+        mem.meta[k] = v; return;
+      }
+      if (v !== undefined) return new Promise(r => { tx("meta","readwrite").put({ k, v }).onsuccess = r; });
+      return new Promise(r => {
+        const q = tx("meta","readonly").get(k);
+        q.onsuccess = () => r(q.result ? q.result.v : null); q.onerror = () => r(null);
+      });
+    }
+  };
+})();
+
+/* ==========================================================================
+   Utilidades
+   ========================================================================== */
+const $ = (s) => document.querySelector(s);
+const fmt = (c) => (c/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","set","oct","nov","dic"];
+
+// Fecha LOCAL, nunca toISOString(): en Perú (UTC−5) lo registrado después
+// de las 7 pm quedaba fechado al día siguiente.
+function hoy(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function sumaDias(iso, n){
+  const [y,m,d] = iso.split("-").map(Number);
+  const x = new Date(y, m-1, d + n);
+  return x.getFullYear() + "-" + String(x.getMonth()+1).padStart(2,"0") + "-" + String(x.getDate()).padStart(2,"0");
+}
+function fechaCorta(iso){
+  if (iso === hoy()) return "Hoy";
+  if (iso === sumaDias(hoy(), -1)) return "Ayer";
+  const [,m,d] = iso.split("-").map(Number);
+  return d + " " + MESES[m-1];
+}
+const cta = (id) => CUENTAS.find(c => c.id === id) || null;
+const cat = (id) => CATEGORIAS.find(c => c.id === id) || null;
+const nomCta = (id) => (cta(id) || {}).nombre || id || "—";
+
+/* Ciclo del 5 al 4: devuelve {inicio, fin, dia, total} para una fecha dada. */
+function cicloDe(iso){
+  const [y,m,d] = iso.split("-").map(Number);
+  let ai = y, mi = m;
+  if (d < CICLO_DIA) { mi -= 1; if (mi < 1) { mi = 12; ai -= 1; } }
+  const inicio = ai + "-" + String(mi).padStart(2,"0") + "-" + String(CICLO_DIA).padStart(2,"0");
+  const fin = sumaDias(inicio.slice(0,8) + String(CICLO_DIA).padStart(2,"0"), 0);
+  let af = ai, mf = mi + 1; if (mf > 12) { mf = 1; af += 1; }
+  const finReal = sumaDias(af + "-" + String(mf).padStart(2,"0") + "-" + String(CICLO_DIA).padStart(2,"0"), -1);
+  const dias = (a,b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+  return { inicio, fin:finReal, dia: dias(inicio, iso) + 1, total: dias(inicio, finReal) + 1 };
+}
+
+/* Cargo de la tarjeta: hasta el cierre vence el 7 del mes siguiente; después, del subsiguiente. */
+function calcFechaCargo(fecha, cuentaId){
+  const c = cta(cuentaId);
+  if (!c || c.tipo !== "credito") return fecha;
+  const [y,m,d] = fecha.split("-").map(Number);
+  let mes = m + (d <= (c.dia_cierre || 10) ? 1 : 2), anio = y;
+  while (mes > 12) { mes -= 12; anio++; }
+  return anio + "-" + String(mes).padStart(2,"0") + "-" + String(c.dia_vencimiento || 7).padStart(2,"0");
+}
+
+const monedaDe = (id, fallback) => { const c = cta(id); return c && c.moneda ? c.moneda : fallback; };
+
+/* ==========================================================================
+   Estado
+   ========================================================================== */
+let CUENTAS = [], CATEGORIAS = [], MOVS = [];
+
+const S = {
+  tipo:"egreso", moneda:"PEN", centimos:0, centimosDestino:0, foco:"origen",
+  categoria_id:null, cuenta:"lemon", destino:null, modo:"rutina",
+  fecha:hoy(), nota:"", rate:null, uso:{}, last:null, undoId:null,
+  saving:false, editando:null, persistido:null, tema:null
+};
+
+/* ==========================================================================
+   Render
+   ========================================================================== */
+function monedaDestino(){
+  if (S.tipo !== "transferencia" || !S.destino) return S.moneda;
+  return monedaDe(S.destino, S.moneda);
+}
+const hayConversion = () => S.tipo === "transferencia" && S.destino && monedaDestino() !== S.moneda;
+
+function puedeGuardar(){
+  if (S.centimos <= 0) return false;
+  if (S.moneda === "USD" && !hayConversion() && !S.rate) return false;
+  if (S.tipo === "transferencia") {
+    if (!S.cuenta || !S.destino || S.cuenta === S.destino) return false;
+    if (hayConversion() && S.centimosDestino <= 0) return false;
+    return true;
+  }
+  return !!S.categoria_id;
+}
+
+function drawFigure(){
+  const f = $("#figure");
+  f.textContent = fmt(S.centimos);
+  f.classList.toggle("cero", S.centimos === 0);
+  $("#curLbl").textContent = S.moneda === "USD" ? "$" : "S/";
+
+  const d = $("#destino");
+  d.classList.toggle("on", !!hayConversion());
+  d.classList.toggle("foco", S.foco === "destino");
+  $("#destFig").textContent = (monedaDestino() === "USD" ? "$ " : "S/ ") + fmt(S.centimosDestino);
+
+  const c = $("#conv");
+  if (hayConversion()) c.textContent = "Cambia de moneda: escribe cuánto sale y cuánto entra.";
+  else if (S.moneda === "USD" && S.rate) {
+    c.innerHTML = "≈ S/ " + fmt(Math.round(S.centimos * S.rate)) + ' · <u id="editRate">t.c. ' + S.rate.toFixed(3) + "</u>";
+    $("#editRate").onclick = openRate;
+  } else if (S.moneda === "USD") {
+    c.innerHTML = '<u id="editRate">Falta el tipo de cambio</u>';
+    $("#editRate").onclick = openRate;
+  } else c.textContent = "";
+
+  const b = $("#btnSave");
+  b.disabled = !puedeGuardar() || S.saving;
+  b.textContent = S.editando ? "Guardar cambios" : "Guardar";
+}
+
+function catsOrdenadas(tipo){
+  return CATEGORIAS.filter(c => c.tipo === tipo)
+    .sort((a,b) => (S.uso[b.id]||0) - (S.uso[a.id]||0) || a.orden - b.orden);
+}
+
+function drawCats(){
+  const box = $("#cats"); box.innerHTML = "";
+  const lista = catsOrdenadas(S.tipo);
+  if (S.categoria_id && !lista.some(c => c.id === S.categoria_id)) S.categoria_id = null;
+  lista.slice(0,6).forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = c.nombre;
+    b.setAttribute("aria-pressed", S.categoria_id === c.id);
+    b.onclick = () => { S.categoria_id = S.categoria_id === c.id ? null : c.id; drawCats(); drawFigure(); };
+    box.appendChild(b);
+  });
+  if (lista.length > 6) {
+    const mas = document.createElement("button");
+    mas.className = "chip pun"; mas.textContent = "Más…";
+    mas.onclick = abrirTodasCats;
+    box.appendChild(mas);
+  }
+  $("#modeRow").hidden = S.categoria_id !== "comida";
+  document.querySelectorAll("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === S.modo));
+}
+
+function abrirTodasCats(){
+  const box = $("#todasCats"); box.innerHTML = "";
+  catsOrdenadas(S.tipo).forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = c.nombre;
+    b.setAttribute("aria-pressed", S.categoria_id === c.id);
+    b.onclick = () => { S.categoria_id = c.id; $("#hojaCats").classList.remove("on"); drawCats(); drawFigure(); };
+    box.appendChild(b);
+  });
+  $("#hojaCats").classList.add("on");
+}
+
+function chipsCuentas(box, sel, onPick, excluir){
+  box.innerHTML = "";
+  CUENTAS.slice().sort((a,b) => a.orden - b.orden).forEach(a => {
+    const b = document.createElement("button");
+    b.className = "chip sm"; b.textContent = a.nombre;
+    b.disabled = excluir === a.id;
+    b.setAttribute("aria-pressed", sel === a.id);
+    b.onclick = () => onPick(a.id);
+    box.appendChild(b);
+  });
+}
+
+function drawAccts(){
+  chipsCuentas($("#accts"), S.cuenta, (id) => {
+    S.cuenta = id; S.moneda = monedaDe(id, S.moneda);
+    if (S.moneda === "USD" && !S.rate) openRate();
+    drawAccts(); drawFigure();
+  });
+}
+
+function drawTransf(){
+  const box = $("#presets"); box.innerHTML = "";
+  PRESETS.filter(p => cta(p.desde) && cta(p.hacia)).forEach(p => {
+    const b = document.createElement("button");
+    b.className = "chip sm"; b.textContent = p.nombre;
+    b.setAttribute("aria-pressed", S.cuenta === p.desde && S.destino === p.hacia);
+    b.onclick = () => {
+      S.cuenta = p.desde; S.destino = p.hacia; S.moneda = monedaDe(p.desde, S.moneda); S.foco = "origen";
+      drawTransf(); drawFigure();
+    };
+    box.appendChild(b);
+  });
+  chipsCuentas($("#origenes"), S.cuenta, (id) => {
+    S.cuenta = id; if (S.destino === id) S.destino = null;
+    S.moneda = monedaDe(id, S.moneda); S.foco = "origen";
+    if (S.moneda === "USD" && !hayConversion() && !S.rate) openRate();
+    drawTransf(); drawFigure();
+  }, S.destino);
+  chipsCuentas($("#destinos"), S.destino, (id) => {
+    S.destino = S.destino === id ? null : id;
+    if (!hayConversion()) { S.centimosDestino = 0; S.foco = "origen"; }
+    drawTransf(); drawFigure();
+  }, S.cuenta);
+}
+
+function drawMeta(){
+  $("#txtFecha").textContent = fechaCorta(S.fecha);
+  $("#inFecha").value = S.fecha;
+  $("#inFecha").max = hoy();
+  const cn = $("#chipNota");
+  cn.textContent = S.nota ? "✎ " + (S.nota.length > 18 ? S.nota.slice(0,18) + "…" : S.nota) : "+ Nota";
+  $("#notaInput").value = S.nota;
+}
+
+/* Contexto del ciclo: solo lectura, se recalcula desde los movimientos guardados. */
+function drawCiclo(){
+  const c = cicloDe(hoy());
+  const delCiclo = MOVS.filter(m => m.tipo === "egreso" && m.fecha_consumo >= c.inicio && m.fecha_consumo <= c.fin);
+  const gastado = delCiclo.reduce((s,m) => s + m.monto_pen_centimos, 0);
+  const deHoy = MOVS.filter(m => m.tipo === "egreso" && m.fecha_consumo === hoy())
+                    .reduce((s,m) => s + m.monto_pen_centimos, 0);
+  $("#hoyTot").textContent = "S/ " + fmt(deHoy);
+  $("#ciclo1").textContent = "ciclo S/ " + fmt(gastado);
+  $("#ciclo2").textContent = "día " + c.dia + " de " + c.total;
+  $("#ciclo3").textContent = (c.total - c.dia) + " días por delante";
+  $("#medBarra").style.right = Math.max(0, 100 - (c.dia / c.total) * 100) + "%";
+}
+
+function drawAll(){
+  const esT = S.tipo === "transferencia";
+  $("#bloqueCat").hidden = esT;
+  $("#bloqueTransf").hidden = !esT;
+  $("#tGasto").setAttribute("aria-pressed", S.tipo === "egreso");
+  $("#tIngreso").setAttribute("aria-pressed", S.tipo === "ingreso");
+  $("#tTransf").setAttribute("aria-pressed", esT);
+  if (esT) drawTransf(); else { drawCats(); drawAccts(); }
+  drawMeta(); drawCiclo(); drawFigure();
+}
+
+/* ==========================================================================
+   Teclado
+   ========================================================================== */
+function push(d){
+  if (S.foco === "destino") { if (S.centimosDestino < 99999999) S.centimosDestino = S.centimosDestino*10 + d; }
+  else if (S.centimos < 99999999) S.centimos = S.centimos*10 + d;
+  drawFigure();
+}
+document.querySelectorAll(".tecla").forEach(k => {
+  if (k.id) return;
+  k.onclick = () => push(Number(k.textContent));
+});
+$("#kDouble").onclick = () => { push(0); push(0); };
+$("#kDel").onclick = () => {
+  if (S.foco === "destino") S.centimosDestino = Math.floor(S.centimosDestino/10);
+  else S.centimos = Math.floor(S.centimos/10);
+  drawFigure();
+};
+$("#figure").onclick  = () => { S.foco = "origen";  drawFigure(); };
+$("#destino").onclick = () => { S.foco = "destino"; drawFigure(); };
+
+/* ==========================================================================
+   Tipo, moneda, modo
+   ========================================================================== */
+function setTipo(t){
+  if (S.tipo === t) return;
+  S.tipo = t;
+  if (t === "transferencia") S.categoria_id = null;
+  else { S.destino = null; S.centimosDestino = 0; S.foco = "origen"; }
+  drawAll();
+}
+$("#tGasto").onclick   = () => setTipo("egreso");
+$("#tIngreso").onclick = () => setTipo("ingreso");
+$("#tTransf").onclick  = () => setTipo("transferencia");
+document.querySelectorAll("[data-mode]").forEach(b => {
+  b.onclick = () => {
+    S.modo = b.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === S.modo));
+  };
+});
+
+/* ==========================================================================
+   Fecha y nota
+   ========================================================================== */
+$("#inFecha").onchange = (e) => {
+  const v = e.target.value; if (!v) return;
+  S.fecha = v > hoy() ? hoy() : v;
+  drawMeta();
+};
+$("#chipNota").onclick = () => {
+  const w = $("#notaWrap"); w.classList.toggle("on");
+  if (w.classList.contains("on")) $("#notaInput").focus();
+};
+$("#notaInput").oninput = (e) => { S.nota = e.target.value.trim(); };
+$("#notaInput").onblur  = () => drawMeta();
+
+/* ==========================================================================
+   Tipo de cambio
+   ========================================================================== */
+function openRate(){
+  $("#rateInput").value = S.rate || "";
+  $("#hojaRate").classList.add("on");
+  setTimeout(() => $("#rateInput").focus(), 60);
+}
+$("#btnRate").onclick = async () => {
+  const v = parseFloat($("#rateInput").value);
+  if (v > 0) { S.rate = v; await Store.meta("rate", v); }
+  $("#hojaRate").classList.remove("on"); drawFigure();
+};
+
+/* ==========================================================================
+   Dial del pulgar — mantener pulsado Guardar abre el abanico de categorías
+   ========================================================================== */
+const Dial = (() => {
+  let abierto = false, ops = [], sel = -1, cx = 0, cy = 0, timer = null, arrastrado = false;
+  const R = 128;
+
+  function construir(x, y){
+    const cont = $("#dial");
+    cont.querySelectorAll(".op,.cen").forEach(n => n.remove());
+    cx = x; cy = y;
+    const lista = catsOrdenadas(S.tipo).slice(0,5);
+    const ang = [-72,-36,0,36,72];
+    ops = lista.map((c,i) => {
+      const el = document.createElement("div");
+      el.className = "op"; el.textContent = c.nombre; el.dataset.id = c.id;
+      const a = ang[i] * Math.PI / 180;
+      el.style.left = (cx + Math.sin(a) * R) + "px";
+      el.style.top  = (cy - Math.cos(a) * R) + "px";
+      cont.appendChild(el);
+      return { el, id:c.id, ang:ang[i] };
+    });
+    const cen = document.createElement("div");
+    cen.className = "cen"; cen.textContent = "cancelar";
+    cen.style.left = cx + "px"; cen.style.top = cy + "px";
+    cont.appendChild(cen);
+    cont.classList.add("on");
+    abierto = true; sel = -1; arrastrado = false;
+  }
+
+  function mover(x, y){
+    if (!abierto) return;
+    const dx = x - cx, dy = y - cy;
+    const dist = Math.hypot(dx, dy);
+    const cen = $("#dial .cen");
+    if (dist < 52) { sel = -1; ops.forEach(o => o.el.classList.remove("sel")); cen.classList.add("sel"); return; }
+    cen.classList.remove("sel");
+    const a = Math.atan2(dx, -dy) * 180 / Math.PI;      // 0 = arriba, positivo a la derecha
+    let mejor = 0, dif = 999;
+    ops.forEach((o,i) => { const d = Math.abs(a - o.ang); if (d < dif) { dif = d; mejor = i; } });
+    sel = dif <= 30 ? mejor : -1;
+    ops.forEach((o,i) => o.el.classList.toggle("sel", i === sel));
+  }
+
+  function cerrar(aplicar){
+    if (!abierto) return;
+    abierto = false;
+    $("#dial").classList.remove("on");
+    if (aplicar && sel >= 0) {
+      S.categoria_id = ops[sel].id;
+      drawCats(); drawFigure();
+      if (puedeGuardar()) guardar();
+    }
+  }
+
+  const btn = $("#btnSave");
+  btn.addEventListener("pointerdown", (e) => {
+    if (btn.disabled && S.centimos <= 0) return;         // sin monto no hay nada que categorizar
+    if (S.tipo === "transferencia") return;              // el dial es solo para categorías
+    timer = setTimeout(() => {
+      const r = btn.getBoundingClientRect();
+      construir(r.left + r.width/2, r.top + r.height/2);
+      if (navigator.vibrate) navigator.vibrate(12);
+    }, 260);
+  });
+  btn.addEventListener("pointerup", () => { clearTimeout(timer); if (abierto) cerrar(true); });
+  btn.addEventListener("pointerleave", () => clearTimeout(timer));
+  window.addEventListener("pointermove", (e) => { if (abierto) { arrastrado = true; mover(e.clientX, e.clientY); } });
+  window.addEventListener("pointerup", (e) => { if (abierto) { mover(e.clientX, e.clientY); cerrar(true); } });
+  $("#dial").addEventListener("click", () => cerrar(false));
+
+  return { abierto: () => abierto };
+})();
+
+/* ==========================================================================
+   Persistencia — se pide en el primer guardado, dentro del gesto
+   ========================================================================== */
+async function pedirPersistencia(){
+  if (S.persistido !== null || !navigator.storage || !navigator.storage.persist) return;
+  try { S.persistido = await navigator.storage.persist(); await Store.meta("persistido", S.persistido); }
+  catch (e) { S.persistido = false; }
+}
+
+/* ==========================================================================
+   Guardar / editar
+   ========================================================================== */
+function limpiar(){
+  S.centimos = 0; S.centimosDestino = 0; S.foco = "origen";
+  S.nota = ""; S.fecha = hoy(); S.editando = null;
+  $("#notaWrap").classList.remove("on");
+}
+
+async function guardar(){
+  if (S.saving || !puedeGuardar()) return;
+  S.saving = true; $("#btnSave").disabled = true;        // anti doble toque
+
+  const esT = S.tipo === "transferencia";
+  const mDest = monedaDestino(), conv = hayConversion();
+
+  let tc, montoPen;
+  if (conv) {
+    tc = S.moneda === "USD" ? S.centimosDestino / S.centimos : S.centimos / S.centimosDestino;
+    montoPen = S.moneda === "PEN" ? S.centimos : S.centimosDestino;
+  } else {
+    tc = S.moneda === "USD" ? S.rate : 1;
+    montoPen = S.moneda === "PEN" ? S.centimos : Math.round(S.centimos * tc);
+  }
+
+  const mov = {
+    id: S.editando ? S.editando.id : crypto.randomUUID(),
+    fecha_consumo: S.fecha,
+    fecha_cargo: calcFechaCargo(S.fecha, S.cuenta),
+    cuenta_id: S.cuenta,
+    cuenta_destino_id: esT ? S.destino : null,
+    categoria_id: esT ? null : S.categoria_id,
+    modo: (!esT && S.categoria_id === "comida") ? S.modo : null,
+    monto_centimos: S.centimos,
+    monto_destino_centimos: conv ? S.centimosDestino : null,
+    moneda: S.moneda,
+    moneda_destino: esT ? mDest : null,
+    tipo_cambio: Number(tc.toFixed(6)),
+    monto_pen_centimos: montoPen,          // congelado: nunca se recalcula
+    tipo: esT ? "transferencia" : S.tipo,
+    nota: S.nota || "",
+    origen: "manual",
+    creado_en: S.editando ? S.editando.creado_en : new Date().toISOString(),
+    editado_en: S.editando ? new Date().toISOString() : null
+  };
+
+  try { await Store.put("movimientos", mov); }
+  catch (e) {
+    S.saving = false;
+    toast("No se guardó. Vuelve a tocar Guardar; si sigue fallando, exporta lo que tienes.", false);
+    drawFigure(); return;
+  }
+
+  await pedirPersistencia();
+
+  const editaba = !!S.editando;
+  MOVS = MOVS.filter(m => m.id !== mov.id).concat(mov);
+  if (!editaba) {
+    if (mov.categoria_id) { S.uso[mov.categoria_id] = (S.uso[mov.categoria_id] || 0) + 1; await Store.meta("uso", S.uso); }
+    S.last = { tipo:S.tipo, moneda:S.moneda, centimos:S.centimos, centimosDestino:S.centimosDestino,
+               categoria_id:S.categoria_id, cuenta:S.cuenta, destino:S.destino, modo:S.modo };
+    await Store.meta("last", S.last);
+    S.undoId = mov.id;
+  } else S.undoId = null;
+
+  const sig = S.moneda === "USD" ? "$ " : "S/ ";
+  const que = esT ? nomCta(S.cuenta) + " → " + nomCta(S.destino) : (cat(mov.categoria_id) || {}).nombre;
+  toast((editaba ? "Corregido: " : mov.tipo === "ingreso" ? "Ingreso " : "") + sig + fmt(mov.monto_centimos) + " · " + que, !editaba);
+
+  limpiar(); S.saving = false;
+  $("#btnRepeat").disabled = !S.last;
+  drawAll();
+}
+$("#btnSave").onclick = () => { if (!Dial.abierto()) guardar(); };
+
+$("#btnRepeat").onclick = () => {
+  if (!S.last) return;
+  Object.assign(S, {
+    tipo:S.last.tipo, moneda:S.last.moneda, centimos:S.last.centimos,
+    centimosDestino:S.last.centimosDestino || 0, categoria_id:S.last.categoria_id,
+    cuenta:S.last.cuenta, destino:S.last.destino, modo:S.last.modo || "rutina",
+    foco:"origen", editando:null
+  });
+  drawAll();
+};
+
+function cargarParaEditar(m){
+  S.editando = m;
+  S.tipo = m.tipo === "transferencia" ? "transferencia" : m.tipo;
+  S.moneda = m.moneda; S.centimos = m.monto_centimos;
+  S.centimosDestino = m.monto_destino_centimos || 0;
+  S.categoria_id = m.categoria_id; S.cuenta = m.cuenta_id; S.destino = m.cuenta_destino_id;
+  S.modo = m.modo || "rutina"; S.fecha = m.fecha_consumo; S.nota = m.nota || ""; S.foco = "origen";
+  $("#notaWrap").classList.toggle("on", !!m.nota);
+  $("#hojaHist").classList.remove("on");
+  drawAll();
+}
+
+/* ==========================================================================
+   Aviso y deshacer (4 s)
+   ========================================================================== */
+let toastT;
+function toast(msg, undoable){
+  $("#toastMsg").textContent = msg;
+  $("#btnUndo").style.display = undoable ? "" : "none";
+  $("#toast").classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => $("#toast").classList.remove("on"), 4000);
+}
+$("#btnUndo").onclick = async () => {
+  if (!S.undoId) return;
+  await Store.remove("movimientos", S.undoId);
+  MOVS = MOVS.filter(m => m.id !== S.undoId);
+  if (S.last && S.last.categoria_id)
+    S.uso[S.last.categoria_id] = Math.max(0, (S.uso[S.last.categoria_id]||1) - 1);
+  await Store.meta("uso", S.uso);
+  S.undoId = null;
+  $("#toast").classList.remove("on");
+  drawAll();
+};
+
+/* ==========================================================================
+   Cálculos del resumen
+   ========================================================================== */
+/* Saldo de una cuenta en SU moneda. Para la tarjeta el saldo sale negativo:
+   la deuda es -saldo. */
+function saldoCuenta(id){
+  const c = cta(id); if (!c) return 0;
+  let s = c.saldo_inicial_centimos || 0;
+  for (const m of MOVS){
+    if (m.cuenta_id === id) s += (m.tipo === "ingreso" ? m.monto_centimos : -m.monto_centimos);
+    if (m.cuenta_destino_id === id)
+      s += (m.monto_destino_centimos != null ? m.monto_destino_centimos : m.monto_centimos);
+  }
+  return s;
+}
+
+/* El próximo día 7: si hoy ya pasó el 7, es el del mes que viene. */
+function proximoVencimiento(){
+  const t = cta("tarjeta") || {}; const d = t.dia_vencimiento || 7;
+  const [y,m,dd] = hoy().split("-").map(Number);
+  let mes = m, anio = y;
+  if (dd > d) { mes++; if (mes > 12) { mes = 1; anio++; } }
+  return anio + "-" + String(mes).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+}
+
+/* Facturado = lo que vence en el próximo 7 (ya cerró y sale de este sueldo).
+   En curso = lo que vence después. Los pagos descuentan del facturado primero. */
+function deudaTarjeta(){
+  const venc = proximoVencimiento();
+  let facturado = 0, enCurso = 0, pagos = 0, hayUSD = false;
+  for (const m of MOVS){
+    if (m.cuenta_id === "tarjeta" && m.tipo === "egreso") {
+      if (m.moneda === "USD") hayUSD = true;
+      const val = m.monto_pen_centimos;           // congelado al registrar
+      if ((m.fecha_cargo || "") <= venc) facturado += val; else enCurso += val;
+    }
+    if (m.cuenta_destino_id === "tarjeta") pagos += m.monto_destino_centimos != null ? m.monto_destino_centimos : m.monto_centimos;
+  }
+  const saldoInicial = (cta("tarjeta") || {}).saldo_inicial_centimos || 0;
+  facturado += saldoInicial;                       // la deuda que traías al arrancar
+  facturado = Math.max(0, facturado - pagos);
+  return { facturado, enCurso: Math.max(0, enCurso), total: facturado + Math.max(0, enCurso), hayUSD, venc };
+}
+
+function disponibleReal(){
+  const liquido = CUENTAS
+    .filter(c => (c.tipo === "debito" || c.tipo === "efectivo") && c.moneda === "PEN")
+    .reduce((s,c) => s + saldoCuenta(c.id), 0);
+  return liquido - deudaTarjeta().facturado;
+}
+
+function gastoPorCategoria(inicio, fin){
+  const t = {};
+  MOVS.filter(m => m.tipo === "egreso" && m.fecha_consumo >= inicio && m.fecha_consumo <= fin)
+      .forEach(m => { const k = m.categoria_id || "otros"; t[k] = (t[k] || 0) + m.monto_pen_centimos; });
+  return Object.entries(t).sort((a,b) => b[1] - a[1]);
+}
+
+function totalCiclo(inicio, fin){
+  return MOVS.filter(m => m.tipo === "egreso" && m.fecha_consumo >= inicio && m.fecha_consumo <= fin)
+             .reduce((s,m) => s + m.monto_pen_centimos, 0);
+}
+
+/* Tres ciclos anteriores al actual. El parcial no entra: arrancaría el promedio
+   con un dato falso. */
+function tendencia3(){
+  const act = cicloDe(hoy());
+  const out = [];
+  let ini = act.inicio;
+  for (let i = 0; i < 3; i++){
+    const antIni = cicloDe(sumaDias(ini, -1)).inicio;
+    const antFin = sumaDias(ini, -1);
+    const hay = MOVS.some(m => m.fecha_consumo >= antIni && m.fecha_consumo <= antFin);
+    if (hay) out.unshift({ inicio:antIni, fin:antFin, total: totalCiclo(antIni, antFin) });
+    ini = antIni;
+  }
+  return out;
+}
+
+/* ==========================================================================
+   Resumen (inicio) + historial + cierre de ciclo
+   ========================================================================== */
+function dibujarResumen(){
+  const c = cicloDe(hoy());
+  const d = deudaTarjeta();
+  const disp = disponibleReal();
+
+  const g = $("#disponible");
+  g.textContent = (disp < 0 ? "−S/ " : "S/ ") + fmt(Math.abs(disp));
+  g.classList.toggle("neg", disp < 0);
+  const liquido = CUENTAS.filter(x => (x.tipo === "debito" || x.tipo === "efectivo") && x.moneda === "PEN")
+                         .reduce((s,x) => s + saldoCuenta(x.id), 0);
+  $("#dispDetalle").textContent = "S/ " + fmt(liquido) + " en cuentas − S/ " + fmt(d.facturado) + " de tarjeta facturada";
+
+  $("#tFacturado").textContent = "S/ " + fmt(d.facturado);
+  $("#tVence").textContent = "vence el " + fechaCorta(d.venc) + " · sale de este sueldo";
+  $("#tCurso").textContent = "S/ " + fmt(d.enCurso);
+  $("#tCursoVence").textContent = d.hayUSD ? "incluye consumos en dólares, ya convertidos" : "vence el mes siguiente";
+  $("#tDeben").textContent = "S/ " + fmt(saldoCuenta("cobrar"));
+
+  const gastado = totalCiclo(c.inicio, c.fin);
+  const quedan = c.total - c.dia;
+  const porDia = quedan > 0 ? Math.round(Math.max(0, disp) / quedan) : 0;
+  $("#tRitmo").textContent = "S/ " + fmt(porDia);
+  $("#tRitmoPie").textContent = "por día, quedan " + quedan + " · llevas S/ " + fmt(gastado);
+
+  // categorías del ciclo
+  const box = $("#porCategoria"); box.innerHTML = "";
+  const cats = gastoPorCategoria(c.inicio, c.fin);
+  if (!cats.length) box.innerHTML = '<p class="nota" style="margin:0">Nada gastado en este ciclo todavía.</p>';
+  else {
+    const max = cats[0][1];
+    cats.forEach(([id, val]) => {
+      const info = cat(id) || { nombre:id, es_esencial:false };
+      const r = document.createElement("div");
+      r.className = "barra-cat" + (info.es_esencial ? " ese" : "");
+      r.innerHTML = '<span class="cab"><span>' + info.nombre + (info.es_esencial ? "" : " ·") +
+        '</span><b>' + fmt(val) + '</b></span><i><em style="right:' + (100 - val/max*100) + '%"></em></i>';
+      box.appendChild(r);
+    });
+  }
+
+  // tendencia
+  const t = $("#tendencia"); const tres = tendencia3();
+  if (!tres.length) t.innerHTML = '<p class="nota" style="margin:0">Hace falta cerrar un ciclo completo. El primero no cuenta si es parcial.</p>';
+  else {
+    const max = Math.max(...tres.map(x => x.total), gastado);
+    t.innerHTML = tres.map(x =>
+      '<div class="barra-cat"><span class="cab"><span>' + fechaCorta(x.inicio) + ' → ' + fechaCorta(x.fin) +
+      '</span><b>' + fmt(x.total) + '</b></span><i><em style="right:' + (100 - x.total/max*100) + '%"></em></i></div>').join("") +
+      '<div class="barra-cat"><span class="cab"><span>este ciclo, día ' + c.dia + '</span><b>' + fmt(gastado) +
+      '</b></span><i><em style="right:' + (100 - gastado/max*100) + '%"></em></i></div>';
+  }
+
+  // saldos por cuenta
+  const pc = $("#porCuenta"); pc.innerHTML = "";
+  CUENTAS.slice().sort((a,b) => a.orden - b.orden).forEach(x => {
+    const s = saldoCuenta(x.id);
+    const esCred = x.tipo === "credito";
+    const sig = x.moneda === "USD" ? "$ " : "S/ ";
+    const r = document.createElement("div"); r.className = "linea";
+    r.innerHTML = '<span>' + x.nombre + (esCred ? '<small>deuda total</small>' : '') + '</span>' +
+      '<span class="m" style="color:' + (esCred || s < 0 ? "var(--ter)" : "var(--t87)") + '">' +
+      (esCred ? sig + fmt(Math.abs(s)) : sig + fmt(s)) + '</span>';
+    pc.appendChild(r);
+  });
+
+  // cierre de ciclo
+  $("#cierreIntro").textContent = "Escribe el saldo que ves hoy en la app del banco. Si no cuadra, la app te dice de cuánto es la diferencia y la anota como ajuste.";
+  const cc = $("#cierreCampos"); cc.innerHTML = "";
+  CUENTAS.filter(x => x.tipo === "debito").forEach(x => {
+    const r = document.createElement("div"); r.className = "linea";
+    r.innerHTML = '<span>' + x.nombre + '<small>la app calcula S/ ' + fmt(saldoCuenta(x.id)) + '</small></span>';
+    const i = document.createElement("input");
+    i.type = "number"; i.step = "0.01"; i.inputMode = "decimal"; i.id = "cierre_" + x.id;
+    i.placeholder = (saldoCuenta(x.id)/100).toFixed(2);
+    r.appendChild(i); cc.appendChild(r);
+  });
+
+  // fijos pendientes
+  dibujarAvisoFijos(c);
+}
+
+$("#btnCuadrar").onclick = async () => {
+  const c = cicloDe(hoy());
+  let dif = 0, detalle = [];
+  for (const x of CUENTAS.filter(y => y.tipo === "debito")){
+    const i = document.getElementById("cierre_" + x.id);
+    if (!i || i.value === "") continue;
+    const real = Math.round(parseFloat(i.value) * 100);
+    const calc = saldoCuenta(x.id);
+    if (real !== calc) { dif += real - calc; detalle.push(x.nombre + " " + (real > calc ? "+" : "") + fmt(real - calc)); }
+  }
+  if (!detalle.length) {
+    $("#cierreRes").textContent = "Cuadra exacto. Nada que ajustar.";
+  } else {
+    // El descuadre se registra como movimiento, no se corrige en silencio.
+    const mov = {
+      id: crypto.randomUUID(), fecha_consumo: hoy(), fecha_cargo: hoy(),
+      cuenta_id: CUENTAS.find(y => y.tipo === "debito").id, cuenta_destino_id: null,
+      categoria_id: dif < 0 ? "otros" : null, modo: null,
+      monto_centimos: Math.abs(dif), monto_destino_centimos: null,
+      moneda: "PEN", moneda_destino: null, tipo_cambio: 1, monto_pen_centimos: Math.abs(dif),
+      tipo: dif < 0 ? "egreso" : "ingreso", nota: "Ajuste de cuadre: " + detalle.join(", "),
+      origen: "cuadre", creado_en: new Date().toISOString(), editado_en: null
+    };
+    if (mov.tipo === "ingreso") mov.categoria_id = "otros_ing";
+    await Store.put("movimientos", mov);
+    MOVS.push(mov);
+    $("#cierreRes").textContent = "Diferencia de S/ " + fmt(Math.abs(dif)) + " (" + detalle.join(", ") +
+      "). Anotada como ajuste, no se borró nada.";
+  }
+  await Store.put("ciclos", {
+    id: c.inicio, fecha_inicio: c.inicio, fecha_fin: c.fin,
+    saldo_declarado_centimos: disponibleReal(), parcial: false, cerrado_en: new Date().toISOString()
+  });
+  dibujarResumen();
+  drawAll();
+};
+
+function dibujarAvisoFijos(c){
+  const box = $("#avisoFijos");
+  const fijos = (S.fijos || []).filter(f => !MOVS.some(m =>
+    m.origen === "fijo:" + f.id && m.fecha_consumo >= c.inicio && m.fecha_consumo <= c.fin));
+  if (!fijos.length) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = '<div class="aviso"><b>' + fijos.length + ' fijo' + (fijos.length > 1 ? "s" : "") +
+    ' de este ciclo sin registrar</b><div class="gr" id="grFijos"></div></div>';
+  const gr = box.querySelector("#grFijos");
+  fijos.forEach(f => {
+    const b = document.createElement("button");
+    b.className = "chip sm";
+    b.textContent = f.nombre + " · S/ " + fmt(f.monto_centimos);
+    b.onclick = async () => {
+      const dia = String(Math.min(f.dia || 5, 28)).padStart(2,"0");
+      const fecha = c.inicio.slice(0,8) + dia <= c.fin ? c.inicio.slice(0,8) + dia : c.inicio;
+      const mov = {
+        id: crypto.randomUUID(), fecha_consumo: fecha > hoy() ? hoy() : fecha,
+        fecha_cargo: calcFechaCargo(fecha > hoy() ? hoy() : fecha, f.cuenta_id),
+        cuenta_id: f.cuenta_id, cuenta_destino_id: null, categoria_id: f.categoria_id, modo: null,
+        monto_centimos: f.monto_centimos, monto_destino_centimos: null,
+        moneda: "PEN", moneda_destino: null, tipo_cambio: 1, monto_pen_centimos: f.monto_centimos,
+        tipo: "egreso", nota: f.nombre, origen: "fijo:" + f.id,
+        creado_en: new Date().toISOString(), editado_en: null
+      };
+      await Store.put("movimientos", mov);
+      MOVS.push(mov);
+      toast("Registrado: " + f.nombre + " · S/ " + fmt(f.monto_centimos), false);
+      dibujarResumen(); drawAll();
+    };
+    gr.appendChild(b);
+  });
+}
+
+async function abrirHistorial(){
+  MOVS = await Store.all("movimientos");
+  dibujarResumen();
+  const all = MOVS.slice().sort((a,b) => (b.fecha_consumo + b.creado_en).localeCompare(a.fecha_consumo + a.creado_en));
+  const box = $("#histList");
+  if (!all.length) {
+    box.innerHTML = '<p class="vacio">Todavía no hay movimientos.<br>Registra el primero y aparecerá acá.</p>';
+  } else {
+    box.innerHTML = "";
+    all.slice(0,60).forEach(m => {
+      const r = document.createElement("div"); r.className = "linea";
+      const sig = m.moneda === "USD" ? "$ " : "S/ ";
+      const esT = m.tipo === "transferencia";
+      const titulo = esT ? nomCta(m.cuenta_id) + " → " + nomCta(m.cuenta_destino_id)
+                         : ((cat(m.categoria_id) || {}).nombre || m.categoria_id || "—") + (m.modo ? " · " + m.modo : "");
+      const pie = fechaCorta(m.fecha_consumo) + (esT ? "" : " · " + nomCta(m.cuenta_id)) +
+                  (m.nota ? " · " + m.nota : "") + (m.editado_en ? " · editado" : "");
+      const t = document.createElement("button");
+      t.className = "tap"; t.innerHTML = "<span>" + titulo + "<small>" + pie + "</small></span>";
+      t.onclick = () => cargarParaEditar(m);
+      const monto = document.createElement("span");
+      monto.className = "m";
+      monto.style.color = esT ? "var(--t60)" : m.tipo === "ingreso" ? "var(--sec)" : "var(--t87)";
+      monto.textContent = (esT ? "" : m.tipo === "ingreso" ? "+" : "−") + sig + fmt(m.monto_centimos);
+      const d = document.createElement("button");
+      d.className = "del"; d.textContent = "✕"; d.setAttribute("aria-label","Eliminar");
+      d.onclick = async () => { await Store.remove("movimientos", m.id); abrirHistorial(); drawCiclo(); };
+      r.append(t, monto, d); box.appendChild(r);
+    });
+  }
+  $("#storeNote").textContent = Store.isMemory()
+    ? "Sin base de datos: los movimientos están solo en memoria y se pierden al cerrar. Exporta antes de salir."
+    : S.persistido
+      ? "Guardado en tu dispositivo, con almacenamiento persistente concedido. Exporta igual de vez en cuando."
+      : "Guardado en tu dispositivo. El navegador todavía no garantiza la persistencia: exporta seguido, es tu única copia.";
+  $("#hojaHist").classList.add("on");
+}
+$("#btnHist").onclick = abrirHistorial;
+
+/* ==========================================================================
+   Tema
+   ========================================================================== */
+async function setTema(t){
+  S.tema = t;
+  if (t) document.documentElement.setAttribute("data-tema", t);
+  else document.documentElement.removeAttribute("data-tema");
+  const oscuro = t === "oscuro" || (!t && matchMedia("(prefers-color-scheme: dark)").matches);
+  $("#btnTema").textContent = oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+  document.querySelector('meta[name="theme-color"]').content = oscuro ? "#192621" : "#EDF6F2";
+  await Store.meta("tema", t);
+}
+$("#btnTema").onclick = () => {
+  const oscuro = S.tema === "oscuro" || (!S.tema && matchMedia("(prefers-color-scheme: dark)").matches);
+  setTema(oscuro ? "claro" : "oscuro");
+};
+
+/* ==========================================================================
+   Exportar CSV — con BOM UTF-8 o Excel abre los acentos rotos
+   ========================================================================== */
+const csvCell = (v) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+};
+$("#btnExport").onclick = async () => {
+  const all = await Store.all("movimientos");
+  if (!all.length) { toast("No hay nada que exportar todavía.", false); return; }
+  const cols = ["id","fecha_consumo","fecha_cargo","tipo","categoria_id","modo",
+                "cuenta_id","cuenta_destino_id","moneda","monto_centimos",
+                "moneda_destino","monto_destino_centimos","tipo_cambio","monto_pen_centimos",
+                "nota","origen","creado_en","editado_en"];
+  const csv = "﻿" + CSV_VERSION + "\n" + cols.join(",") + "\n" +
+    all.map(m => cols.map(c => csvCell(m[c])).join(",")).join("\n") + "\n";
+  const url = URL.createObjectURL(new Blob([csv], { type:"text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "ciclo-" + hoy() + ".csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 800);
+  await Store.meta("ultimo_respaldo", hoy());
+};
+
+/* ==========================================================================
+   Importar CSV — un respaldo que no se restaura no es respaldo.
+   Deduplica por id: reimportar el mismo archivo no duplica nada.
+   ========================================================================== */
+function parseCSV(txt){
+  txt = String(txt).replace(/^﻿/, "");
+  const filas = []; let campo = "", fila = [], enCom = false;
+  for (let i = 0; i < txt.length; i++){
+    const c = txt[i];
+    if (enCom) {
+      if (c === '"') { if (txt[i+1] === '"') { campo += '"'; i++; } else enCom = false; }
+      else campo += c;
+    }
+    else if (c === '"') enCom = true;
+    else if (c === ",") { fila.push(campo); campo = ""; }
+    else if (c === "\n") { fila.push(campo); filas.push(fila); fila = []; campo = ""; }
+    else if (c !== "\r") campo += c;
+  }
+  if (campo !== "" || fila.length) { fila.push(campo); filas.push(fila); }
+  if (!filas.length) return [];
+  let i0 = 0;
+  if (filas[0].length === 1 && /^gastos-/.test(filas[0][0])) i0 = 1;   // línea de versión
+  const cab = filas[i0] || [];
+  // Las filas con columnas de más o de menos NO se descartan aquí en silencio:
+  // se dejan pasar incompletas para que la validación las cuente como inválidas.
+  return filas.slice(i0 + 1)
+    .filter(f => !(f.length === 1 && f[0] === ""))
+    .map(f => { const o = {}; cab.forEach((k,j) => o[k] = f[j] === undefined ? "" : f[j]); return o; });
+}
+
+const CSV_NUM = ["monto_centimos","monto_destino_centimos","tipo_cambio","monto_pen_centimos"];
+const CSV_NULL = ["cuenta_destino_id","categoria_id","modo","moneda_destino","editado_en","nota"];
+function normalizarFila(o){
+  const m = Object.assign({}, o);
+  CSV_NUM.forEach(k => { m[k] = (m[k] === "" || m[k] == null) ? null : Number(m[k]); });
+  CSV_NULL.forEach(k => { if (m[k] === "") m[k] = k === "nota" ? "" : null; });
+  return m;
+}
+function filaValida(m){
+  return !!m.id
+    && /^\d{4}-\d{2}-\d{2}$/.test(m.fecha_consumo || "")
+    && Number.isInteger(m.monto_centimos) && m.monto_centimos > 0
+    && Number.isInteger(m.monto_pen_centimos)
+    && ["egreso","ingreso","transferencia"].includes(m.tipo);
+}
+
+async function importarCSV(txt){
+  const filas = parseCSV(txt);
+  const actuales = new Set((await Store.all("movimientos")).map(m => m.id));
+  let nuevos = 0, repetidos = 0, invalidos = 0;
+  for (const f of filas){
+    const m = normalizarFila(f);
+    if (!filaValida(m)) { invalidos++; continue; }
+    if (actuales.has(m.id)) { repetidos++; continue; }
+    await Store.put("movimientos", m);
+    actuales.add(m.id); nuevos++;
+  }
+  MOVS = await Store.all("movimientos");
+  return { nuevos, repetidos, invalidos };
+}
+
+/* ==========================================================================
+   Configuración
+   ========================================================================== */
+async function abrirConfig(){
+  const box = $("#saldos"); box.innerHTML = "";
+  CUENTAS.slice().sort((a,b) => a.orden - b.orden).forEach(c => {
+    const deuda = c.tipo === "credito";
+    const r = document.createElement("div"); r.className = "linea";
+    const sig = c.moneda === "USD" ? "$" : "S/";
+    r.innerHTML = '<span>' + c.nombre +
+      '<small>' + (deuda ? "Deuda pendiente al arrancar · 0 si la pagaste toda"
+                         : c.tipo === "virtual" ? "Lo que te deben hoy"
+                         : "Saldo en " + sig) + '</small></span>';
+    const i = document.createElement("input");
+    i.type = "number"; i.step = "0.01"; i.min = "0"; i.inputMode = "decimal";
+    i.id = "sal_" + c.id;
+    i.value = ((c.saldo_inicial_centimos || 0) / 100).toFixed(2);
+    r.appendChild(i); box.appendChild(r);
+  });
+  $("#inInicio").value = (await Store.meta("inicio")) || "2026-09-05";
+  const ultimo = await Store.meta("ultimo_respaldo");
+  $("#notaRespaldo").textContent = ultimo
+    ? "Último respaldo: " + fechaCorta(ultimo) + ". Importar no duplica: los movimientos repetidos se saltan por id."
+    : "Todavía no has exportado nunca. Si limpias los datos del navegador, pierdes lo no exportado.";
+  $("#confNota").textContent = Store.isMemory()
+    ? "Sin base de datos en este entorno."
+    : S.persistido ? "Almacenamiento persistente concedido por el navegador."
+                   : "El navegador aún no garantiza la persistencia. Se pide sola al guardar tu primer movimiento.";
+  $("#hojaConf").classList.add("on");
+}
+function dibujarFijos(){
+  const box = $("#listaFijos"); box.innerHTML = "";
+  (S.fijos || []).forEach(f => {
+    const r = document.createElement("div"); r.className = "linea";
+    r.innerHTML = '<span>' + f.nombre + '<small>' + ((cat(f.categoria_id)||{}).nombre || "—") +
+      ' · ' + nomCta(f.cuenta_id) + '</small></span><span class="m">S/ ' + fmt(f.monto_centimos) + '</span>';
+    const d = document.createElement("button");
+    d.className = "del"; d.textContent = "✕"; d.setAttribute("aria-label","Quitar fijo");
+    d.onclick = async () => {
+      S.fijos = S.fijos.filter(x => x.id !== f.id);
+      await Store.meta("fijos", S.fijos); dibujarFijos();
+    };
+    r.appendChild(d); box.appendChild(r);
+  });
+  if (!(S.fijos || []).length) box.innerHTML = '<p class="nota" style="margin:0 0 8px">Todavía no hay fijos.</p>';
+  const sel = $("#fCat");
+  if (sel && !sel.options.length)
+    CATEGORIAS.filter(c => c.tipo === "egreso").forEach(c => sel.add(new Option(c.nombre, c.id)));
+}
+
+$("#btnAddFijo").onclick = async () => {
+  const n = $("#fNombre").value.trim();
+  const v = parseFloat($("#fMonto").value);
+  if (!n || !(v > 0)) { toast("Ponle nombre y monto al fijo.", false); return; }
+  S.fijos = (S.fijos || []).concat({
+    id: crypto.randomUUID().slice(0,8), nombre:n, monto_centimos: Math.round(v*100),
+    categoria_id: $("#fCat").value || "otros", cuenta_id: S.cuenta || "lemon", dia: 5
+  });
+  await Store.meta("fijos", S.fijos);
+  $("#fNombre").value = ""; $("#fMonto").value = "";
+  dibujarFijos();
+};
+
+$("#btnConf").onclick = async () => { await abrirConfig(); dibujarFijos(); };
+
+$("#btnGuardarConf").onclick = async () => {
+  for (const c of CUENTAS){
+    const i = document.getElementById("sal_" + c.id);
+    if (!i) continue;
+    const v = parseFloat(i.value);
+    c.saldo_inicial_centimos = isNaN(v) ? 0 : Math.round(v * 100);
+    await Store.put("cuentas", c);
+  }
+  const ini = $("#inInicio").value || "2026-09-05";
+  const c = cicloDe(ini);
+  // Declarado = lo que tienes disponible, sin la deuda de la tarjeta ni lo prestado.
+  const declarado = CUENTAS
+    .filter(x => (x.tipo === "debito" || x.tipo === "efectivo") && x.moneda === "PEN")
+    .reduce((s,x) => s + (x.saldo_inicial_centimos || 0), 0);
+  await Store.put("ciclos", {
+    id: c.inicio, fecha_inicio: c.inicio, fecha_fin: c.fin,
+    saldo_declarado_centimos: declarado, parcial: c.dia > 1, cerrado_en: null
+  });
+  await Store.meta("inicio", c.inicio);
+  $("#hojaConf").classList.remove("on");
+  toast("Configuración guardada · arranque " + fechaCorta(c.inicio) + " con S/ " + fmt(declarado), false);
+};
+
+$("#btnExport2").onclick = () => $("#btnExport").click();
+$("#btnImport").onclick = () => $("#fileCsv").click();
+$("#fileCsv").onchange = async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    const r = await importarCSV(await f.text());
+    toast("Importados " + r.nuevos + " · repetidos " + r.repetidos +
+          (r.invalidos ? " · descartados " + r.invalidos : ""), false);
+    drawAll();
+  } catch (err) {
+    toast("No se pudo leer el archivo. Tiene que ser un CSV exportado por esta app.", false);
+  }
+  e.target.value = "";
+};
+
+let borrarArmado = false;
+$("#btnBorrar").onclick = async () => {
+  if (!borrarArmado) {
+    borrarArmado = true;
+    $("#btnBorrar").textContent = "Toca otra vez para borrar de verdad";
+    setTimeout(() => { borrarArmado = false; $("#btnBorrar").textContent = "Borrar todos los movimientos"; }, 5000);
+    return;
+  }
+  for (const m of await Store.all("movimientos")) await Store.remove("movimientos", m.id);
+  MOVS = []; S.uso = {}; S.last = null; S.undoId = null;
+  await Store.meta("uso", {}); await Store.meta("last", null);
+  borrarArmado = false;
+  $("#btnBorrar").textContent = "Borrar todos los movimientos";
+  $("#btnRepeat").disabled = true;
+  $("#hojaConf").classList.remove("on");
+  drawAll();
+  toast("Listo. Cero movimientos: puedes arrancar limpio.", false);
+};
+
+document.querySelectorAll(".hoja").forEach(h => {
+  h.onclick = (e) => { if (e.target === h) h.classList.remove("on"); };
+});
+
+/* ==========================================================================
+   Arranque
+   ========================================================================== */
+/* Siembra por id, no "si está vacío": así una cuenta nueva de la semilla
+   (Lemon) también llega a una base que ya existía, sin pisar lo que el
+   usuario haya cambiado de las que ya tenía. */
+async function sembrar(){
+  CUENTAS = await Store.all("cuentas");
+  CATEGORIAS = await Store.all("categorias");
+  for (const c of SEMILLA_CUENTAS) {
+    const ex = CUENTAS.find(x => x.id === c.id);
+    if (!ex) { await Store.put("cuentas", c); CUENTAS.push(c); }
+    else if (ex.orden !== c.orden) { ex.orden = c.orden; await Store.put("cuentas", ex); }  // el orden lo manda la semilla
+  }
+  for (const c of SEMILLA_CATEGORIAS)
+    if (!CATEGORIAS.some(x => x.id === c.id)) { await Store.put("categorias", c); CATEGORIAS.push(c); }
+  if (!cta(S.cuenta)) S.cuenta = (CUENTAS.slice().sort((a,b) => a.orden - b.orden)[0] || {}).id || null;
+}
+
+/* El prototipo guardaba la categoría como texto. Ahora es un id. Idempotente. */
+async function migrarV1(){
+  const all = await Store.all("movimientos");
+  const viejos = all.filter(m => m.categoria && !m.categoria_id);
+  if (!viejos.length) return;
+  const porNombre = {}; CATEGORIAS.forEach(c => porNombre[c.nombre.toLowerCase()] = c.id);
+  const cuentasViejas = { credito:"tarjeta" };
+  for (const m of viejos) {
+    m.categoria_id = porNombre[String(m.categoria).toLowerCase()] || "otros";
+    m.cuenta_id = cuentasViejas[m.cuenta_id] || m.cuenta_id;
+    m.cuenta_destino_id = m.cuenta_destino_id ?? null;
+    m.monto_destino_centimos = m.monto_destino_centimos ?? null;
+    m.nota = m.nota || m.descripcion || "";
+    m.editado_en = m.editado_en ?? null;
+    delete m.categoria; delete m.descripcion;
+    await Store.put("movimientos", m);
+  }
+}
+
+(async () => {
+  // Pinta ya con la semilla: abrir la base tarda y la pantalla no puede
+  // salir vacía cuando el usuario abre la app para registrar algo rápido.
+  CUENTAS = SEMILLA_CUENTAS.slice(); CATEGORIAS = SEMILLA_CATEGORIAS.slice();
+  drawAll();
+  await Store.open();
+  await sembrar();
+  await migrarV1();
+  MOVS        = await Store.all("movimientos");
+  S.uso       = (await Store.meta("uso"))  || {};
+  S.rate      = (await Store.meta("rate")) || null;
+  S.last      = (await Store.meta("last")) || null;
+  S.persistido= await Store.meta("persistido");
+  S.fijos     = (await Store.meta("fijos")) || [];
+  await setTema(await Store.meta("tema"));
+  if (S.last) $("#btnRepeat").disabled = false;
+  drawAll();
+
+  if (Store.isMemory()) { toast("Sin base de datos en este entorno: los datos no se van a guardar.", false); return; }
+
+  // Service worker: la app abre sin conexión. Solo con https o localhost.
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    try {
+      const reg = await navigator.serviceWorker.register("sw.js");
+      reg.addEventListener("updatefound", () => {
+        const nuevo = reg.installing;
+        if (!nuevo) return;
+        nuevo.addEventListener("statechange", () => {
+          if (nuevo.state === "installed" && navigator.serviceWorker.controller)
+            toast("Hay una versión nueva. Cierra la app y vuelve a abrirla.", false);
+        });
+      });
+    } catch (e) { /* sin https no hay service worker: la app funciona igual, sin offline */ }
+  }
+
+  // Aviso de respaldo: sin exportar, un vaciado del navegador se lleva todo.
+  if (MOVS.length) {
+    const ultimo = await Store.meta("ultimo_respaldo");
+    const dias = ultimo ? Math.round((new Date(hoy()) - new Date(ultimo)) / 86400000) : 999;
+    if (dias >= 30) setTimeout(() => toast(
+      ultimo ? "Hace " + dias + " días que no exportas. Configuración → Exportar CSV."
+             : "Nunca has exportado. Configuración → Exportar CSV, es tu única copia.", false), 900);
+  }
+})();
+</script>
+</body>
+</html>

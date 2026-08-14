@@ -1,0 +1,4 @@
+# basura de herramientas, no del proyecto
+.agents/
+skills-lock.json
+_probe.html
