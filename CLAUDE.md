@@ -204,9 +204,11 @@ Si el usuario pide algo de la segunda lista, no lo construyas todavía: dile que
 | 2 | Configuración inicial ✅ | Saldos, exportar **e importar**, borrar todo |
 | 3 | Inicio ✅ | Disponible real, dos bloques de tarjeta, ritmo |
 | 4 | Fijos y cierre de ciclo ✅ | Confirmar de un toque, cuadre contra Lemon y BBVA |
-| 5 | PWA ✅ · Pages pendiente | Instalar y que sobreviva a cerrar el celular |
+| 5 | PWA + GitHub Pages ✅ | Instalar y que sobreviva a cerrar el celular |
 
-Todas cerradas el 2026-08-14 salvo publicar en GitHub Pages, que necesita que el dueño cree el repo público. **83 comprobaciones en verde** (`node pruebas/test.mjs`).
+Las cinco cerradas el 2026-08-14. **83 comprobaciones en verde** (`TZ=America/Lima node pruebas/test.mjs`).
+
+**En vivo: https://uselesslit.github.io/ciclo/** — repo público `uselesslit/ciclo`, Pages desde `main` en la raíz, HTTPS forzado. Publicar una versión nueva es `git push`; si cambian archivos cacheados, subir `CACHE` en `sw.js` o el celular seguirá con la copia vieja.
 
 La 2 va antes que el dashboard **a propósito**: hasta que la restauración funcione, cada prueba es desechable.
 
